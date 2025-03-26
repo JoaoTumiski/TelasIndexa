@@ -1,0 +1,356 @@
+import os
+import json
+import qrcode
+from PyQt6.QtWidgets import QLabel, QWidget, QVBoxLayout, QHBoxLayout, QSizePolicy
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QPixmap
+from config.database import supabase
+
+# 🔥 Caminhos dos arquivos locais
+NEWS_JSON_PATH = "cache/noticias.json"
+QR_CODE_FOLDER = "cache/qrcodes"
+
+# 🔥 Criar pastas caso não existam
+os.makedirs("cache", exist_ok=True)
+os.makedirs(QR_CODE_FOLDER, exist_ok=True)
+
+def obter_noticias_supabase():
+    """Busca as notícias mais recentes do Supabase e imprime informações detalhadas para depuração."""
+    try:
+        # 🔥 Consulta ao Supabase
+        response = supabase.table("noticias").select("valor, atualizado_em").eq("tipo", "noticias").execute()
+        if response.data:
+            noticia_data = response.data[0]  # Pegamos a primeira entrada
+
+            # 🔹 Verificar se a chave 'valor' existe
+            if "valor" not in noticia_data:
+                return None, None
+
+            # 🔹 O JSONB no Supabase já retorna como dicionário, então verificamos o tipo
+            noticias = noticia_data["valor"]
+            atualizado_em = noticia_data["atualizado_em"]
+
+            # 🔹 Se o JSONB vier como string, precisamos converter para dicionário
+            if isinstance(noticias, str):
+                try:
+                    noticias = json.loads(noticias)
+                except json.JSONDecodeError as e:
+                    return None, None
+
+            return noticias, atualizado_em
+        return None, None
+    except Exception as e:
+        print(f"❌ Erro ao buscar notícias no Supabase: {e}")
+        return None, None
+
+def salvar_noticias_localmente(noticias, atualizado_em):
+    """Salva as notícias no arquivo local"""
+    try:
+        with open(NEWS_JSON_PATH, "w", encoding="utf-8") as file:
+            json.dump({"noticias": noticias, "atualizado_em": atualizado_em}, file, indent=4, ensure_ascii=False)
+        print(f"✅ Notícias salvas em {NEWS_JSON_PATH}")
+    except Exception as e:
+        print(f"❌ Erro ao salvar notícias localmente: {e}")
+
+def carregar_noticias_local():
+    """Carrega as notícias salvas localmente"""
+    if not os.path.exists(NEWS_JSON_PATH):
+        return None, None
+
+    try:
+        with open(NEWS_JSON_PATH, "r", encoding="utf-8") as file:
+            data = json.load(file)
+            return data.get("noticias"), data.get("atualizado_em")
+
+    except Exception as e:
+        print(f"❌ Erro ao carregar notícias locais: {e}")
+        return None, None
+
+
+def verificar_e_atualizar_noticias():
+    """Verifica se precisa atualizar as notícias e baixa um novo JSON se necessário"""
+    print("🔄 Verificando atualização das notícias...")
+
+    # 🔥 Busca timestamp das notícias salvas localmente
+    noticias_local, timestamp_local = carregar_noticias_local()
+
+    # 🔥 Busca do Supabase
+    noticias_supabase, timestamp_supabase = obter_noticias_supabase()
+
+    # Se não houver notícias no Supabase, mantém a local
+    if not noticias_supabase:
+        print("⚠️ Nenhuma notícia disponível no Supabase. Mantendo a versão local.")
+        return noticias_local
+
+    # Se os timestamps forem diferentes, atualiza o JSON local
+    if timestamp_supabase != timestamp_local:
+        print(f"🔄 Atualização encontrada! Novo timestamp: {timestamp_supabase}")
+        salvar_noticias_localmente(noticias_supabase, timestamp_supabase)
+        return noticias_supabase  # Retorna as novas notícias
+
+    print("✅ Notícias já estão atualizadas. Nenhuma ação necessária.")
+    return noticias_local  # Retorna as notícias já salvas
+
+class NewsWidget(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        # 🔄 Força a verificação no Supabase na inicialização
+        verificar_e_atualizar_noticias()
+
+        # 🔥 Criar QR Code folder dentro do objeto
+        self.qr_folder = QR_CODE_FOLDER
+        # 📌 Limpar cache de QR Codes ao iniciar
+        self.clear_qr_cache()
+
+        # 📌 Criar a pasta para os QR Codes se não existir
+        os.makedirs(self.qr_folder, exist_ok=True)
+
+        # 📌 Layout principal (background)
+        main_layout = QVBoxLayout()
+        main_layout.setContentsMargins(10, 10, 10, 10)
+        main_layout.setSpacing(10)
+
+        # 📌 Criar um QWidget para servir de contêiner do fundo (para garantir bordas arredondadas)
+        self.background_container = QWidget(self)
+        self.background_container.setObjectName("backgroundContainer")  # 🔹 Para estilização no QSS
+
+        # 📌 Criar um QLabel para exibir a imagem de fundo dentro do container
+        self.background_label = QLabel(self.background_container)
+        self.background_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.background_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
+        # 📌 Definir estilos para garantir bordas arredondadas e fundo ajustado
+        self.background_container.setStyleSheet("""
+            QWidget#backgroundContainer {
+                border-radius: 20px;
+                background-color: #171615; /* Cor de fallback */
+            }
+        """)
+
+        # 📌 Enviar para o fundo e garantir que ocupe toda a tela
+        self.background_container.lower()
+
+        # 📌 Criar um overlay escuro e transparente sobre a imagem de fundo
+        self.overlay = QWidget(self.background_container)
+        self.overlay.setObjectName("overlay")
+
+        # 📌 Estilizar o overlay para ficar escuro e transparente
+        self.overlay.setStyleSheet("""
+            QWidget#overlay {
+                background-color: rgba(0, 0, 0, 200 ); /* 🔹 Cor preta com 150/255 de opacidade */
+                border-radius: 20px; /* 🔹 Mantém bordas arredondadas */
+            }
+        """)
+
+        # 🔹 Coloca o overlay acima da imagem de fundo
+        self.overlay.raise_()
+
+
+        # 📌 Layout superior (QR Code e Título)
+        top_layout = QHBoxLayout()
+        top_layout.setContentsMargins(0, 0, 0, 0)
+        top_layout.setSpacing(10)
+
+        # 📌 Quadrado arredondado à esquerda (QR Code da Notícia)
+        self.qr_label = QLabel()
+        self.qr_label.setFixedSize(125, 125)
+        self.qr_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.qr_label.setScaledContents(True)
+        self.qr_label.setStyleSheet("""
+            background-color: #fff;
+            border-radius: 20px;
+            padding: 5px;
+        """)
+
+        # 📌 Título à direita
+        self.title_label = QLabel("Título")
+        self.title_label.setWordWrap(True)  # 🔥 Permite quebra de linha
+        self.title_label.setStyleSheet("color: #2fc6cf; font-size: 28px; font-weight: bold;")
+        self.title_label.setContentsMargins(0, 0, 10, 0)
+        self.title_label.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
+
+        # 📌 Adicionar itens ao layout superior
+        top_layout.addWidget(self.qr_label)
+        top_layout.addStretch()
+        top_layout.addWidget(self.title_label)
+
+        # 📌 Layout central (Notícia e Logo)
+        center_layout = QVBoxLayout()
+        center_layout.setContentsMargins(0, 0, 0, 0)
+        center_layout.setSpacing(10)
+
+        # 📌 Notícia (Texto da notícia)
+        self.news_label = QLabel("Notícia")
+        self.news_label.setStyleSheet("color: #fff; font-size: 32px; font-weight: bold;")
+        self.news_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.news_label.setWordWrap(True)
+
+        # 📌 Criar Layout Horizontal para Centralizar o Logo
+        logo_layout = QHBoxLayout()
+        logo_layout.setContentsMargins(0, 0, 0, 0)  # Remove margens
+        logo_layout.setSpacing(0)
+
+        # 📌 Logo da fonte de notícia
+        self.logo_label = QLabel()
+        self.logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.logo_label.setFixedSize(150, 50)  # 🔹 Tamanho fixo para o logo
+        self.logo_label.setScaledContents(True)
+
+        # 📌 Adicionar a logo ao layout e centralizar
+        logo_layout.addStretch()
+        logo_layout.addWidget(self.logo_label)
+        logo_layout.addStretch()
+
+        # 📌 Adicionar itens ao layout central
+        center_layout.addStretch()
+        center_layout.addWidget(self.news_label)
+        center_layout.addStretch()
+        center_layout.addLayout(logo_layout)
+
+        # 📌 Adicionar layouts ao layout principal
+        # 📌 Definir o QLabel de fundo como um background fixo
+        self.background_label.lower()  # 🔹 Envia o QLabel para o fundo, atrás dos outros widgets
+        self.background_label.setGeometry(0, 0, self.width(), self.height())  # 🔹 Ocupa toda a área do widget
+        main_layout.addLayout(top_layout)
+        main_layout.addLayout(center_layout)
+        self.setLayout(main_layout)
+
+        # 📌 Criar JSON inicial caso não exista
+        if not os.path.exists(NEWS_JSON_PATH):
+            salvar_noticias_localmente({"portal_cidade": [], "jovempan": []}, "2000-01-01T00:00:00")
+
+        # 📌 Carregar as notícias do JSON
+        self.news_list = self.get_news_from_json()
+        self.current_news_index = 0
+
+        # 📌 Se houver notícias, exibir a primeira
+        if self.news_list:
+            self.update_news()
+
+            # 📌 Criar Timer para alternar notícias a cada 15 segundos
+            self.timer = QTimer(self)
+            self.timer.timeout.connect(self.next_news)
+            self.timer.start(15000)
+        else:
+            self.news_label.setText("⚠️ Nenhuma notícia disponível!")
+
+        # 🔥 Criar um timer para verificar atualizações a cada 20 minutos
+        self.update_timer = QTimer(self)
+        self.update_timer.timeout.connect(self.atualizar_noticias)
+        self.update_timer.start(1200000)  # 20 minutos (1.200.000 ms)
+
+    def get_news_from_json(self):
+        """Obtém as notícias do JSON salvo localmente e gera QR Codes."""
+        noticias, _ = carregar_noticias_local()
+        if not noticias:
+            return []
+
+        news_list = []
+        for noticia in noticias.get("portal_cidade", []) + noticias.get("jovempan", []):
+            titulo = noticia.get("titulo", "Sem título")
+            link = noticia.get("link", "")
+            categoria = noticia.get("categoria", "Geral")
+
+            # 🔹 Gerar QR Code a partir do link
+            qr_path = self.generate_qr_code(link)
+
+            # 🔹 Adicionar notícia à lista
+            news_list.append({
+                "titulo": titulo,
+                "categoria": categoria,
+                "qr_code": qr_path if os.path.exists(qr_path) else None
+            })
+        return news_list
+
+    def update_news(self):
+        """Atualiza a notícia exibida no widget"""
+        if self.news_list:
+            noticia = self.news_list[self.current_news_index]
+
+            # 🔹 Obter título e categoria corretamente
+            titulo = noticia.get("titulo", "Título não encontrado")
+            categoria = noticia.get("categoria", "Sem categoria")
+
+            # 🔹 Atualizar o título da categoria no topo
+            self.title_label.setText(categoria)  # ⬅️ Agora exibe a categoria no topo
+
+            # 🔹 Atualizar o texto da notícia no centro do card
+            self.news_label.setText(titulo)  # ⬅️ Agora exibe apenas o título no centro
+
+            # 📌 Atualizar QR Code
+            if noticia.get("qr_code") and os.path.exists(noticia["qr_code"]):
+                pixmap = QPixmap(noticia["qr_code"])
+                if not pixmap.isNull():
+                    self.qr_label.setPixmap(pixmap)
+                    self.qr_label.show()
+                else:
+                    print(f"⚠️ Erro ao carregar QR Code: {noticia['qr_code']}")
+                    self.qr_label.hide()
+            else:
+                self.qr_label.hide()
+
+            self.update()
+
+    def next_news(self):
+        """Alterna para a próxima notícia no loop"""
+        self.current_news_index = (self.current_news_index + 1) % len(self.news_list)
+        self.update_news()
+
+    def atualizar_noticias(self):
+        """Atualiza as notícias verificando o Supabase e atualiza o label."""
+        print("🔄 Atualizando notícias no Widget...")
+        novas_noticias = verificar_e_atualizar_noticias()
+        if novas_noticias:
+            self.clear_qr_cache()  # 🔥 Limpa os QR Codes antigos
+            self.news_list = self.get_news_from_json()
+            self.update_news()
+
+    def clear_qr_cache(self):
+        """Limpa QR Codes antigos ao iniciar, mantendo apenas os do JSON salvo localmente."""
+        if not os.path.exists(NEWS_JSON_PATH):
+            print("⚠️ Nenhum JSON encontrado, pulando limpeza de QR Codes.")
+            return  # Se o JSON não existe, não há como validar
+
+        try:
+            with open(NEWS_JSON_PATH, "r", encoding="utf-8") as file:
+                data = json.load(file)
+                noticias = data.get("noticias", {})
+
+                # 🔹 Obtém todos os links do JSON para gerar IDs de QR Codes válidos
+                valid_qr_codes = set()
+                for fonte in noticias.values():  # Itera por 'portal_cidade' e 'jovempan'
+                    for noticia in fonte:
+                        if "link" in noticia:
+                            valid_qr_codes.add(f"{hash(noticia['link'])}.png")
+
+                # 🔹 Remove QR Codes que não estão mais no JSON
+                for filename in os.listdir(self.qr_folder):
+                    if filename.endswith(".png") and filename not in valid_qr_codes:
+                        file_path = os.path.join(self.qr_folder, filename)
+                        os.remove(file_path)
+                        print(f"🗑️ Removido QR Code antigo: {file_path}")
+
+        except Exception as e:
+            print(f"❌ Erro ao limpar QR Codes antigos: {e}")
+
+
+    def generate_qr_code(self, link):
+        """Gera um QR Code para o link da notícia"""
+        if not link:
+            return None
+
+        qr_filename = f"{hash(link)}.png"
+        qr_path = os.path.join(self.qr_folder, qr_filename)
+
+        if not os.path.exists(qr_path):  # 🔹 Só cria se ainda não existir
+            qr = qrcode.make(link)
+            qr.save(qr_path)
+
+        return qr_path
+    def resizeEvent(self, event):
+        """Redimensiona o fundo e o overlay para cobrir toda a área"""
+        self.background_container.setGeometry(0, 0, self.width(), self.height())  # Fundo
+        self.background_label.setGeometry(0, 0, self.width(), self.height())  # Imagem
+        self.overlay.setGeometry(0, 0, self.width(), self.height())  # Overlay escuro
+        super().resizeEvent(event)

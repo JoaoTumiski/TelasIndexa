@@ -1,0 +1,7 @@
+pypdfium2==4.30.1
+PyQt6==6.8.1
+PyQt6_sip==13.10.0
+python_vlc==3.0.21203
+qrcode==8.0
+Requests==2.32.3
+supabase==2.14.0
