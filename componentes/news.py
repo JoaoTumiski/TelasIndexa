@@ -1,9 +1,10 @@
 import os
 import json
 import qrcode
+import random
 from PyQt6.QtWidgets import QLabel, QWidget, QVBoxLayout, QHBoxLayout, QSizePolicy
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QPixmap
+from PyQt6.QtGui import QPixmap, QPainter, QPainterPath
 from config.database import supabase
 
 # 🔥 Caminhos dos arquivos locais
@@ -14,10 +15,32 @@ QR_CODE_FOLDER = "cache/qrcodes"
 os.makedirs("cache", exist_ok=True)
 os.makedirs(QR_CODE_FOLDER, exist_ok=True)
 
+def arredondar_pixmap(pixmap, radius):
+        """Retorna um QPixmap com cantos arredondados."""
+        if pixmap.isNull():
+            return pixmap
+
+        size = pixmap.size()
+        rounded = QPixmap(size)
+        rounded.fill(Qt.GlobalColor.transparent)
+
+        painter = QPainter(rounded)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        path = QPainterPath()
+        path.addRoundedRect(0, 0, size.width(), size.height(), radius, radius)
+        painter.setClipPath(path)
+        painter.drawPixmap(0, 0, pixmap)
+        painter.end()
+
+        return rounded
+
 def obter_noticias_supabase():
-    """Busca as notícias mais recentes do Supabase e imprime informações detalhadas para depuração."""
+    """Busca as notícias mais recentes do Supabase"""
+    if supabase is None:
+        print("⚠️ Supabase não disponível. Pulando atualização de notícias.")
+        return None, None
+
     try:
-        # 🔥 Consulta ao Supabase
         response = supabase.table("noticias").select("valor, atualizado_em").eq("tipo", "noticias").execute()
         if response.data:
             noticia_data = response.data[0]  # Pegamos a primeira entrada
@@ -108,8 +131,6 @@ class NewsWidget(QWidget):
 
         # 📌 Layout principal (background)
         main_layout = QVBoxLayout()
-        main_layout.setContentsMargins(10, 10, 10, 10)
-        main_layout.setSpacing(10)
 
         # 📌 Criar um QWidget para servir de contêiner do fundo (para garantir bordas arredondadas)
         self.background_container = QWidget(self)
@@ -119,6 +140,7 @@ class NewsWidget(QWidget):
         self.background_label = QLabel(self.background_container)
         self.background_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.background_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.background_label.setStyleSheet("border-radius: 20px;")
 
         # 📌 Definir estilos para garantir bordas arredondadas e fundo ajustado
         self.background_container.setStyleSheet("""
@@ -145,7 +167,6 @@ class NewsWidget(QWidget):
 
         # 🔹 Coloca o overlay acima da imagem de fundo
         self.overlay.raise_()
-
 
         # 📌 Layout superior (QR Code e Título)
         top_layout = QHBoxLayout()
@@ -194,7 +215,7 @@ class NewsWidget(QWidget):
         # 📌 Logo da fonte de notícia
         self.logo_label = QLabel()
         self.logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.logo_label.setFixedSize(150, 50)  # 🔹 Tamanho fixo para o logo
+        self.logo_label.setFixedSize(180, 50)  # 🔹 Tamanho fixo para o logo
         self.logo_label.setScaledContents(True)
 
         # 📌 Adicionar a logo ao layout e centralizar
@@ -247,7 +268,22 @@ class NewsWidget(QWidget):
             return []
 
         news_list = []
-        for noticia in noticias.get("portal_cidade", []) + noticias.get("jovempan", []):
+
+        for origem, lista in noticias.items():  # origem = 'portal_cidade' ou 'jovempan'
+            for noticia in lista:
+                titulo = noticia.get("titulo", "Sem título")
+                link = noticia.get("link", "")
+                categoria = noticia.get("categoria", "Geral")
+                qr_path = self.generate_qr_code(link)
+
+                news_list.append({
+                    "titulo": titulo,
+                    "categoria": categoria,
+                    "qr_code": qr_path if os.path.exists(qr_path) else None,
+                    "origem": origem,  # 🔹 Adiciona a origem
+                    "imagem": noticia.get("imagem")
+                })
+
             titulo = noticia.get("titulo", "Sem título")
             link = noticia.get("link", "")
             categoria = noticia.get("categoria", "Geral")
@@ -255,12 +291,8 @@ class NewsWidget(QWidget):
             # 🔹 Gerar QR Code a partir do link
             qr_path = self.generate_qr_code(link)
 
-            # 🔹 Adicionar notícia à lista
-            news_list.append({
-                "titulo": titulo,
-                "categoria": categoria,
-                "qr_code": qr_path if os.path.exists(qr_path) else None
-            })
+            random.shuffle(news_list)
+
         return news_list
 
     def update_news(self):
@@ -274,6 +306,16 @@ class NewsWidget(QWidget):
 
             # 🔹 Atualizar o título da categoria no topo
             self.title_label.setText(categoria)  # ⬅️ Agora exibe a categoria no topo
+
+            # 🔹 Atualizar a logo com base na origem
+            origem = noticia.get("origem", "")
+            logo_path = f"assets/logotipos/{origem}.png"
+            if os.path.exists(logo_path):
+                pixmap_logo = QPixmap(logo_path)
+                self.logo_label.setPixmap(pixmap_logo)
+                self.logo_label.show()
+            else:
+                self.logo_label.clear()
 
             # 🔹 Atualizar o texto da notícia no centro do card
             self.news_label.setText(titulo)  # ⬅️ Agora exibe apenas o título no centro
@@ -289,6 +331,23 @@ class NewsWidget(QWidget):
                     self.qr_label.hide()
             else:
                 self.qr_label.hide()
+
+            # 🔹 Atualizar imagem de fundo se for do portal_cidade e tiver imagem
+            imagem_nome = noticia.get("imagem")
+            if noticia.get("origem") == "portal_cidade" and imagem_nome:
+                imagem_path = os.path.join("cache", "News", imagem_nome)
+                if os.path.exists(imagem_path):
+                    pixmap_bg = QPixmap(imagem_path)
+                    if not pixmap_bg.isNull():
+                        rounded_pixmap = arredondar_pixmap(pixmap_bg, 30)
+                        self.background_label.setPixmap(rounded_pixmap)
+                        self.background_label.setScaledContents(True)
+                    else:
+                        self.background_label.clear()
+                else:
+                    self.background_label.clear()
+            else:
+                self.background_label.clear()
 
             self.update()
 

@@ -30,10 +30,8 @@ class ElevatorScreen(QMainWindow):
         """)
 
         # 📌 Criar o widget principal e os layouts
-        spacer = QSpacerItem(
-            15, 15, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-        spacer2 = QSpacerItem(
-            10, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        spacer = QSpacerItem(15, 15, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+        spacer2 = QSpacerItem(10, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
         main_widget = QWidget()
         mainV_layout = QVBoxLayout()
         mainH_layout = QHBoxLayout()
@@ -60,6 +58,7 @@ class ElevatorScreen(QMainWindow):
         # 📌 Adicionar widgets à coluna da esquerda
         services_widget = ServicesWidget()
         left_layout.addWidget(services_widget, 1)
+        left_layout.addSpacing(20)
         info_widget = InfoWidget()
         left_layout.addWidget(info_widget, 2)
 

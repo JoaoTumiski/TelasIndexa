@@ -36,12 +36,13 @@ def processar_json(json_path):
             update_data = json.load(file)
 
         categorias = {
-            "Videos": "video",
+            "Entretenimento": "video",
+            "Propagandas": "video",
             "Banners": "imagem",
             "CondominiumNotices": "mensagem",
-            "logotipos": "imagem",
             "News": "imagem"
         }
+
 
         for categoria, chave in categorias.items():
             if categoria in update_data:

@@ -12,7 +12,9 @@ COTACAO_JSON_PATH = "cache/cotacao.json"
 os.makedirs("cache", exist_ok=True)
 
 def obter_cotacao_supabase():
-    """Busca a cotação mais recente do Supabase e adiciona prints para depuração."""
+    if supabase is None:
+        print("⚠️ Supabase não disponível. Pulando atualização de notícias.")
+        return None, None
 
     try:
         response = supabase.table("cotacoes").select("valor, atualizado_em").eq("tipo", "cotacao").execute()

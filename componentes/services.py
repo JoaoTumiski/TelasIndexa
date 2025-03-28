@@ -1,8 +1,8 @@
 import os
 import json
 from PyQt6.QtWidgets import QHBoxLayout, QLabel, QWidget, QSizePolicy
-from PyQt6.QtGui import QPixmap
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QPixmap, QPainter, QPainterPath
+from PyQt6.QtCore import Qt, QTimer, QRectF
 
 
 class ServicesWidget(QWidget):
@@ -22,6 +22,8 @@ class ServicesWidget(QWidget):
         self.Services.setScaledContents(False)
         self.Services.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.Services.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.Services.setStyleSheet("background: transparent;")
+
 
         # 📌 Definir tamanho fixo do widget (altura) e expansível na largura
         self.setFixedHeight(200)
@@ -111,18 +113,34 @@ class ServicesWidget(QWidget):
 
 
     def update_image(self):
-        """Atualiza a imagem exibida no QLabel e ajusta ao tamanho correto"""
+        """Atualiza a imagem exibida no QLabel com bordas arredondadas"""
         if self.image_list:
             image_path = self.image_list[self.current_image_index]
             pixmap = QPixmap(image_path)
 
-            # 📌 Ajusta a imagem ao tamanho do QLabel mantendo a proporção
-        self.Services.setPixmap(pixmap.scaled(
-            self.Services.size(),
-            Qt.AspectRatioMode.KeepAspectRatio,
-            Qt.TransformationMode.SmoothTransformation
-        ))
+            # Redimensiona mantendo proporção
+            scaled = pixmap.scaled(
+                self.Services.size(),
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation
+            )
 
+            # Cria QPixmap transparente para aplicar máscara
+            rounded = QPixmap(scaled.size())
+            rounded.fill(Qt.GlobalColor.transparent)
+
+            # Desenha a imagem com cantos arredondados
+            painter = QPainter(rounded)
+            try:
+                painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+                path = QPainterPath()
+                path.addRoundedRect(QRectF(rounded.rect()), 20, 20)
+                painter.setClipPath(path)
+                painter.drawPixmap(0, 0, scaled)
+            finally:
+                painter.end()
+
+            self.Services.setPixmap(rounded)
 
     def next_image(self):
         """Alterna para a próxima imagem no loop"""

@@ -9,6 +9,10 @@ from PyQt6.QtCore import QUrl, Qt, QTimer
 class VideoWidget(QWidget):
     def __init__(self):
         super().__init__()
+        self.json_path = "cache/update.json"
+        self.video_folder_propagandas = "cache/Propagandas"
+        self.video_folder_entretenimento = "cache/Entretenimento"
+
 
         # 📌 Layout para organizar o vídeo
         layout = QVBoxLayout()
@@ -38,10 +42,6 @@ class VideoWidget(QWidget):
         # 📌 Adicionar o vídeo ao layout
         layout.addWidget(self.video_widget)
         self.setLayout(layout)
-
-        # 📌 Caminho dos arquivos extraídos do ZIP
-        self.json_path = "cache/update.json"
-        self.video_folder = "cache/Videos"
 
         # 📌 Carregar a lista de vídeos do JSON
         self.video_list = self.get_videos_from_json()
@@ -82,7 +82,7 @@ class VideoWidget(QWidget):
 
 
     def get_videos_from_json(self):
-        """Obtém os vídeos válidos listados no JSON extraído, ignorando deletados."""
+        """Obtém todos os vídeos de Propagandas e Entretenimento, intercalando na ordem."""
         if not os.path.exists(self.json_path):
             print(f"⚠️ Arquivo JSON não encontrado: {self.json_path}")
             return []
@@ -90,35 +90,46 @@ class VideoWidget(QWidget):
         try:
             with open(self.json_path, "r", encoding="utf-8") as file:
                 data = json.load(file)
-                videos = data.get("Videos", [])
 
-            video_paths = []
-            deleted_videos = []  # Lista para armazenar vídeos a serem deletados
+            def listar_validos(categoria, pasta):
+                validos = []
+                deletados = []
+                for item in data.get(categoria, []):
+                    video_nome = os.path.basename(item.get("video", ""))
+                    video_path = os.path.join(pasta, video_nome)
 
-            for video in videos:
-                video_name = os.path.basename(video["video"])  # Nome do arquivo
-                video_path = os.path.join(self.video_folder, video_name)
-
-                if video.get("status") == "deleted":
-                    if os.path.exists(video_path):
-                        deleted_videos.append(video_path)  # Adiciona à lista de exclusão
-                else:
-                    if os.path.exists(video_path):
-                        video_paths.append(video_path)
+                    if item.get("status") == "deleted":
+                        if os.path.exists(video_path):
+                            deletados.append(video_path)
+                    elif os.path.exists(video_path):
+                        validos.append(video_path)
                     else:
-                        print(f"⚠️ Arquivo de vídeo não encontrado: {video_path}")
+                        print(f"⚠️ Arquivo ausente: {video_path}")
+                return validos, deletados
 
-            # 🔹 Para a reprodução antes de excluir vídeos
-            if deleted_videos:
+            propagandas, deletar_p1 = listar_validos("Propagandas", self.video_folder_propagandas)
+            entretenimentos, deletar_p2 = listar_validos("Entretenimento", self.video_folder_entretenimento)
+
+            # 🔁 Intercalar os vídeos das duas listas
+            intercalados = []
+            for i in range(max(len(propagandas), len(entretenimentos))):
+                if i < len(propagandas):
+                    intercalados.append(propagandas[i])
+                if i < len(entretenimentos):
+                    intercalados.append(entretenimentos[i])
+
+            # Excluir os deletados (se houver)
+            deletados = deletar_p1 + deletar_p2
+            if deletados:
                 self.stop_and_release_video()
-                for file in deleted_videos:
+                for file in deletados:
                     try:
                         os.remove(file)
                         print(f"🗑️ Vídeo deletado: {file}")
                     except Exception as e:
                         print(f"❌ Erro ao deletar {file}: {e}")
 
-            return video_paths
+            return intercalados
 
         except Exception as e:
             print(f"❌ Erro ao processar JSON: {e}")
