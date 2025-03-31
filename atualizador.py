@@ -100,7 +100,7 @@ def baixar_arquivo(url, destino):
         response = requests.get(url, stream=True, timeout=15)
         if response.status_code == 200:
             with open(destino, "wb") as file:
-                for chunk in response.iter_content(1024):
+                for chunk in response.iter_content(1024 * 1024 * 4):
                     file.write(chunk)
 
             # ✅ **Verificar se o arquivo realmente existe antes de continuar**

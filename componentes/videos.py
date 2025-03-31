@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QSizePolicy
 from PyQt6.QtMultimedia import QMediaPlayer
 from PyQt6.QtMultimediaWidgets import QVideoWidget
 from PyQt6.QtCore import QUrl, Qt, QTimer
+from itertools import cycle
 
 
 class VideoWidget(QWidget):
@@ -110,13 +111,18 @@ class VideoWidget(QWidget):
             propagandas, deletar_p1 = listar_validos("Propagandas", self.video_folder_propagandas)
             entretenimentos, deletar_p2 = listar_validos("Entretenimento", self.video_folder_entretenimento)
 
-            # 🔁 Intercalar os vídeos das duas listas
+           # 🔁 Intercalar com repetição cíclica de propagandas
             intercalados = []
-            for i in range(max(len(propagandas), len(entretenimentos))):
-                if i < len(propagandas):
-                    intercalados.append(propagandas[i])
-                if i < len(entretenimentos):
-                    intercalados.append(entretenimentos[i])
+
+            if propagandas and entretenimentos:
+                propaganda_cycle = cycle(propagandas)  # Garante repetição infinita
+                for ent in entretenimentos:
+                    intercalados.append(next(propaganda_cycle))
+                    intercalados.append(ent)
+            elif propagandas:  # Se só houver propagandas
+                intercalados = propagandas
+            elif entretenimentos:  # Se só houver entretenimento
+                intercalados = entretenimentos
 
             # Excluir os deletados (se houver)
             deletados = deletar_p1 + deletar_p2
