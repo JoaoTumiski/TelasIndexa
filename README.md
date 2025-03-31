@@ -7,7 +7,7 @@ Aplicação que roda localmente em mini PCs (NUCs), responsável por exibir o co
 ## 🧠 Principais Recursos
 
 - Exibição de:
-  - 📰 Notícias com QR Code e contagem de acessos
+  - 📰 Notícias com QR Code 
   - 📢 Avisos do condomínio
   - 📹 Live e câmeras ao vivo (com reconexão)
   - 🎬 Vídeos institucionais e propagandas
@@ -49,5 +49,9 @@ Aplicação que roda localmente em mini PCs (NUCs), responsável por exibir o co
 - [ ] Sistema de logs com envio automático
 - [ ] Tela de debug local com status da internet/API
 - [ ] Instalação automatizada com script `.bat` ou `.sh`
+
+---
+
+👉 [Acesse aqui o repositório do Servidor AWS ](https://github.com/JoaoTumiski/ServerIndexa)
 
 ---
