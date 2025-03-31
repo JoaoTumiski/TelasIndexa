@@ -133,7 +133,7 @@ class LiveWidget(QWidget):
         self.video_item = QGraphicsVideoItem()
         self.scene.addItem(self.video_item)
 
-        self.zoom_factor = 1.5
+        self.zoom_factor = 1.4
         transform = QTransform()
         transform.scale(self.zoom_factor, self.zoom_factor)
         self.video_item.setTransform(transform)
