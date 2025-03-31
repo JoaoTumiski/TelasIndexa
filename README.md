@@ -1,4 +1,4 @@
-# 🖥️ DevTelas Software — Sistema de Exibição em NUCs
+# 🖥️  Software — Sistema de Exibição em NUCs
 
 Aplicação que roda localmente em mini PCs (NUCs), responsável por exibir o conteúdo das telas em condomínios e empresas. Trabalha de forma **autônoma**, com atualização remota e funcionamento offline.
 
