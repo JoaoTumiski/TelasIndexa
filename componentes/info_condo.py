@@ -11,6 +11,14 @@ class InfoWidget(QWidget):
     def __init__(self):
         super().__init__()
 
+        
+        # 🔹 Carregar o modelo do config.json
+        self.modelo = 0  # Padrão
+        if os.path.exists("config.json"):
+            with open("config.json", "r") as f:
+                config = json.load(f)
+                self.modelo = config.get("modelo", 0)
+
         self.last_json_data = None
 
         # ⏱️ Timer de checagem de atualizações do JSON
@@ -32,6 +40,8 @@ class InfoWidget(QWidget):
         self.title_label = QLabel("Notícias do Condomínio")
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.title_label.setFixedWidth(540)
+        if self.modelo == 1:
+            self.title_label.setFixedHeight(100)
         self.title_label.setStyleSheet("""
             background-color: #7B1FA2;
             color: white;
@@ -45,7 +55,6 @@ class InfoWidget(QWidget):
         # 📌 Criar QLabel para exibir imagens e PDFs convertidos
         self.bg_label = QLabel(self)
         self.bg_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.bg_label.setFixedHeight(740)
         self.bg_label.setFixedWidth(540)
         self.bg_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.bg_label.setScaledContents(True)

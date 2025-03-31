@@ -55,11 +55,21 @@ class ConfigIni(QMainWindow):
 
     def salvar_config(self):
         """Salva o ID da Tela, exibe mensagem e inicia atualização"""
-        self.tela_id = self.text_input.text().strip()  # Armazena o ID para verificar depois
-        if self.tela_id:
-            # Salvar ID no config.json
+        entrada = self.text_input.text().strip()  # Ex: "101_1" ou "101"
+        
+        if entrada:
+            partes = entrada.split("_")
+            cliente_id = partes[0]
+            modelo_tela = int(partes[1]) if len(partes) > 1 and partes[1].isdigit() else 0
+            
+            config = {
+                "tela_id": cliente_id,
+                "modelo": modelo_tela
+            }
+
+            # Salvar ID e modelo no config.json
             with open(CONFIG_FILE, "w") as f:
-                json.dump({"tela_id": self.tela_id}, f)
+                json.dump(config, f)
 
             # Atualizar status e desativar botão
             self.status_label.setText("📡 Fazendo download dos arquivos...")
@@ -72,6 +82,7 @@ class ConfigIni(QMainWindow):
 
             # Iniciar o timer para verificar se o JSON foi criado
             self.check_timer.start(3000)  # Verifica a cada 3 segundos
+
 
     def verificar_json_criado(self):
         """Verifica se o arquivo <id_da_tela>.json foi criado"""

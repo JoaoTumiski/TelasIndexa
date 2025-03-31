@@ -8,7 +8,7 @@ import subprocess
 BASE_DIR = getattr(sys, '_MEIPASS', os.path.abspath("."))
 
 # Configurações
-SERVER_URL = "http://192.168.1.180:8000"
+SERVER_URL = "http://15.228.8.3:8000"
 CACHE_DIR = os.path.join(BASE_DIR, "cache")
 VERSAO_FILE = os.path.join(CACHE_DIR, "versao.json")  # Caminho do arquivo de versão
 CONFIG_PATH = "config.json"

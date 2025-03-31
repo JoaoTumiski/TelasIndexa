@@ -1,5 +1,7 @@
 from PyQt6.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QHBoxLayout, QSizePolicy, QSpacerItem
 from PyQt6.QtCore import Qt  # 🔹 Import necessário para o modo fullscreen
+import os
+import json
 from componentes.header import Header
 from componentes.videos import VideoWidget
 from componentes.news import NewsWidget
@@ -13,6 +15,14 @@ from componentes.services import ServicesWidget
 class ElevatorScreen(QMainWindow):
     def __init__(self):
         super().__init__()
+
+        # 🔹 Carregar o modelo do config.json
+        self.modelo = 0  # Padrão
+        if os.path.exists("config.json"):
+            with open("config.json", "r") as f:
+                config = json.load(f)
+                self.modelo = config.get("modelo", 0)
+
 
         # 📌 Configuração da Janela
         self.setWindowTitle("Tela do Elevador")
@@ -56,9 +66,11 @@ class ElevatorScreen(QMainWindow):
         mainH_layout.addWidget(right_column, 2)
 
         # 📌 Adicionar widgets à coluna da esquerda
-        services_widget = ServicesWidget()
-        left_layout.addWidget(services_widget, 1)
-        left_layout.addSpacing(20)
+        if self.modelo != 1:
+            services_widget = ServicesWidget()
+            left_layout.addWidget(services_widget, 1)
+            left_layout.addSpacing(20)
+
         info_widget = InfoWidget()
         left_layout.addWidget(info_widget, 2)
 
