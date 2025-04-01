@@ -75,6 +75,7 @@ Este guia descreve o processo completo para instalação e configuração do sis
 1. Baixe o instalador do Python 3.11+ em: [https://www.python.org/downloads/](https://www.python.org/downloads/)
 2. Marque a opção **“Add Python to PATH”** no início da instalação.
 3. Conclua a instalação.
+4. reinicie a maquina para aplicar o path
 
 ⚠️ Verifique com `python --version` no terminal (cmd) se a instalação está correta.
 
