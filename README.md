@@ -100,6 +100,7 @@ Este guia descreve o processo completo para instalação e configuração do sis
 4. Navegue até a pasta e instale os requisitos (se necessário):
    - `cd telas-software`
    - `pip install -r requirements.txt`
+5. adicione a pasta config que contem as configurações do banco de dados
 
 ### 6️⃣ Iniciar o software automaticamente com o sistema
 
