@@ -125,6 +125,10 @@ def baixar_arquivo(url, destino):
 if __name__ == "__main__":
     tempo_espera = 1200  # Tempo inicial de espera (segundos)
 
+    # ✅ Executa verificação logo no início
+    print("🚀 Verificando atualização inicial...")
+    verificar_atualizacao()
+
     while True:
         try:
             verificar_atualizacao()

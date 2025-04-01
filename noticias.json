@@ -1,0 +1,169 @@
+{
+    "noticias": {
+        "jovempan": [
+            {
+                "link": "https://jovempan.com.br/noticias/politica/bolsonaro-faz-post-em-frances-para-apoiar-marine-le-pen-espero-que-ela-venca-essa-perseguicao.html",
+                "titulo": "Bolsonaro faz post em francês para apoiar Marine Le Pen: ‘Espero que ela vença essa perseguição’",
+                "categoria": "Política"
+            },
+            {
+                "link": "https://jovempan.com.br/edicase/horoscopo-do-dia-previsao-para-os-12-signos-em-01-04-2025.html",
+                "titulo": "Horóscopo do dia: previsão para os 12 signos em 01/04/2025",
+                "categoria": "Astrologia"
+            },
+            {
+                "link": "https://jovempan.com.br/noticias/tecnologia/chatgpt-atraiu-1-milhao-de-novos-usuarios-em-uma-hora-apos-lancar-recurso-de-geracao-de-imagem.html",
+                "titulo": "ChatGPT atraiu 1 milhão de novos usuários em uma hora após lançar recurso de geração de imagem",
+                "categoria": "Tecnologia"
+            },
+            {
+                "link": "https://jovempan.com.br/noticias/mundo/ira-responde-ultimato-de-trump-e-alerta-que-se-for-atacado-nao-tera-outra-opcao-a-nao-ser-obter-arma-nuclear.html",
+                "titulo": "Irã responde ultimato de Trump e alerta que se for atacado ‘não terá outra opção’ a não ser obter arma nuclear",
+                "categoria": "Mundo"
+            },
+            {
+                "link": "https://jovempan.com.br/noticias/mundo/eua-acusam-brasil-de-impor-numerosas-barreiras-e-tarifas-contra-produtos-norte-americanos.html",
+                "titulo": "EUA acusam Brasil de impor numerosas barreiras e tarifas contra produtos norte-americanos",
+                "categoria": "Mundo"
+            },
+            {
+                "link": "https://jovempan.com.br/noticias/mundo/trump-manda-ultimato-para-os-houthis-se-nao-pararem-de-atirar-dor-real-esta-por-vir.html",
+                "titulo": "Trump manda ultimato para os Houthis: ‘Se não pararem de atirar, dor real está por vir’",
+                "categoria": "Mundo"
+            },
+            {
+                "link": "https://jovempan.com.br/noticias/brasil/temporal-deixa-quase-100-mil-imoveis-sem-energia-na-grande-sao-paulo.html",
+                "titulo": "Temporal deixa quase 100 mil imóveis sem energia na Grande São Paulo",
+                "categoria": "Brasil"
+            },
+            {
+                "link": "https://jovempan.com.br/noticias/mundo/casa-branca-considera-assumir-controle-sobre-quais-meios-de-comunicacao-podem-participar-de-coletivas-do-governo.html",
+                "titulo": "Casa Branca considera assumir controle sobre quais meios de comunicação podem participar de coletivas do governo",
+                "categoria": "Mundo"
+            },
+            {
+                "link": "https://jovempan.com.br/opiniao-jovem-pan/comentaristas/bruno-pinheiro/lula-visitara-aldeia-indigena-em-mato-grosso-veja-quando.html",
+                "titulo": "Lula visitará aldeia indígena em Mato Grosso; veja quando",
+                "categoria": "Bruno Pinheiro"
+            },
+            {
+                "link": "https://jovempan.com.br/noticias/mundo/diretora-do-fmi-diz-que-nao-ve-recessao-no-horizonte-com-tarifas-de-trump.html",
+                "titulo": "Diretora do FMI diz que não vê ‘recessão no horizonte’ com tarifas de Trump",
+                "categoria": "Mundo"
+            },
+            {
+                "link": "https://jovempan.com.br/noticias/brasil/justica-federal-suspende-resolucao-que-autorizava-farmaceuticos-a-prescrever-medicamentos.html",
+                "titulo": "Justiça Federal suspende resolução que autorizava farmacêuticos a prescrever medicamentos",
+                "categoria": "Brasil"
+            },
+            {
+                "link": "https://jovempan.com.br/entretenimento/famosos/kim-soo-hyun-ator-mais-bem-pago-da-coreia-do-sul-chora-e-nega-envolvimento-na-morte-da-ex-nao-sou-assassino.html",
+                "titulo": "Kim Soo-hyun, ator mais bem pago da Coreia do Sul, chora e nega envolvimento na morte da ex: ‘Não sou assassino’",
+                "categoria": "Famosos"
+            },
+            {
+                "link": "https://jovempan.com.br/noticias/economia/tebet-afirma-que-precos-dos-alimentos-estao-altos-tambem-por-falta-de-planejamento-no-passado.html",
+                "titulo": "Tebet afirma que preços dos alimentos estão altos também por falta de planejamento no passado",
+                "categoria": "Economia"
+            },
+            {
+                "link": "https://jovempan.com.br/noticias/brasil/motorista-perde-controle-de-bmw-e-invade-estacao-de-trem-em-sao-paulo.html",
+                "titulo": "Motorista perde controle de BMW e invade estação de trem em São Paulo",
+                "categoria": "Brasil"
+            },
+            {
+                "link": "https://jovempan.com.br/edicase/4-novidades-imperdiveis-no-globoplay.html",
+                "titulo": "4 novidades imperdíveis no Globoplay",
+                "categoria": "Lazer"
+            },
+            {
+                "link": "https://jovempan.com.br/entretenimento/famosos/fatima-bernardes-revela-que-ficou-cerca-de-tres-anos-sem-andar-de-aviao-por-crise-de-ansiedade-via-meu-coracao-batendo.html",
+                "titulo": "Fátima Bernardes revela que ficou cerca de três anos sem andar de avião por crise de ansiedade: ‘Via meu coração batendo’",
+                "categoria": "Famosos"
+            },
+            {
+                "link": "https://jovempan.com.br/noticias/brasil/chuva-causa-estragos-no-grande-abc-e-deixa-sao-paulo-em-estado-de-atencao-para-alagamentos.html",
+                "titulo": "Chuva no Grande ABC alaga Avenida do Estado, invade casas e interrompe circulação de trens",
+                "categoria": "Brasil"
+            },
+            {
+                "link": "https://jovempan.com.br/entretenimento/famosos/atriz-que-interpretou-odete-roitman-morreu-com-magoa-da-globo-nunca-me-deu-importancia.html",
+                "titulo": "Atriz que interpretou Odete Roitman morreu com mágoa da Globo: ‘Nunca me deu importância’",
+                "categoria": "Famosos"
+            },
+            {
+                "link": "https://jovempan.com.br/noticias/mundo/explosao-em-mina-na-regiao-espanhola-das-asturias-deixa-5-mortos-e-4-feridos.html",
+                "titulo": "Explosão em mina na região espanhola das Astúrias deixa 5 mortos e 4 feridos",
+                "categoria": "Mundo"
+            },
+            {
+                "link": "https://jovempan.com.br/edicase/veja-quando-e-indicada-a-primeira-ida-ao-ginecologista.html",
+                "titulo": "Veja quando é indicada a primeira ida ao ginecologista",
+                "categoria": "Viva melhor"
+            }
+        ],
+        "portal_cidade": [
+            {
+                "link": "https://foz.portaldacidade.com/noticias/publicacoes-legais/edital-de-citacao-com-prazo-de-20-dias-contra-a-constantino-cia-ltda-me-5604",
+                "imagem": "edital-de-citacao-com-prazo-de-20-dias-contra-a-constantino-cia-ltda-me-67eae79d4f94a.jpg",
+                "titulo": "Edital de Citação com prazo de 20 dias contra A. Constantino & Cia LTDA ME",
+                "categoria": "Publicações Legais"
+            },
+            {
+                "link": "https://foz.portaldacidade.com/noticias/publicacoes-legais/edital-de-citacao-com-prazo-de-20-dias-contra-jose-antonio-arruda-4853",
+                "imagem": "edital-de-citacao-com-prazo-de-20-dias-contra-jose-antonio-arruda-67eae76809523.jpg",
+                "titulo": "Edital de Citação com prazo de 20 dias contra Jose Antonio Arruda",
+                "categoria": "Publicações Legais"
+            },
+            {
+                "link": "https://foz.portaldacidade.com/noticias/policial/guarda-municipal-ganha-reforco-de-tres-integrantes-para-ajudar-no-patrulhamento-3411",
+                "imagem": "tres-caes-da-guarda-municipal-voltam-a-reforcar-o-patrulhamento-67eadf8766358.png",
+                "titulo": "Guarda Municipal ganha reforço de três integrantes para ajudar no patrulhamento",
+                "categoria": "Policial"
+            },
+            {
+                "link": "https://foz.portaldacidade.com/noticias/turismo/wonder-land-e-space-station-sao-as-novas-atracoes-do-wonder-park-para-2025-3306",
+                "imagem": "wonder-land-e-space-station-sao-as-novas-atracoes-do-wonder-park-para-2025-67ead1f15a366.png",
+                "titulo": "Wonder Land e Space Station são as novas atrações do Wonder Park para 2025",
+                "categoria": "Turismo"
+            },
+            {
+                "link": "https://foz.portaldacidade.com/noticias/cidade/outlet-do-jeans-da-apae-tera-grandes-marcas-com-descontos-de-ate-80-0241",
+                "imagem": "outlet-do-jeans-da-apae-tera-grandes-marcas-com-descontos-de-ate-80-67eacab4a8f6b.png",
+                "titulo": "Outlet do Jeans da APAE terá grandes marcas com descontos de até 80%",
+                "categoria": "Cidade"
+            },
+            {
+                "link": "https://foz.portaldacidade.com/noticias/cidade/ccr-completa-tres-anos-na-administracao-do-aeroporto-de-foz-do-iguacu-4733",
+                "imagem": "ccr-completa-tres-anos-na-administracao-do-aeroporto-de-foz-do-iguacu-67eac74fbfb26.JPG",
+                "titulo": "CCR completa três anos na administração do Aeroporto de Foz do Iguaçu",
+                "categoria": "Cidade"
+            },
+            {
+                "link": "https://foz.portaldacidade.com/noticias/policial/policia-federal-prende-militar-com-carga-de-produtos-contrabandeados-do-paraguai-3132",
+                "imagem": "policia-federal-prende-militar-com-carga-de-produtos-contrabandeados-do-paraguai-67eac36716cb3.png",
+                "titulo": "Polícia Federal prende militar com carga de produtos contrabandeados do Paraguai",
+                "categoria": "Policial"
+            },
+            {
+                "link": "https://foz.portaldacidade.com/noticias/cidade/festa-do-peixe-assado-acontece-neste-sabado-5-garanta-seu-ingresso-2840",
+                "imagem": "festa-do-peixe-assado-acontece-neste-sabado-5-garanta-seu-ingresso-67eac2bf9aaac.png",
+                "titulo": "Festa do Peixe Assado acontece neste sábado (5); garanta seu ingresso",
+                "categoria": "Cidade"
+            },
+            {
+                "link": "https://foz.portaldacidade.com/noticias/regiao/sa-shop-importados-do-shopping-paris-lanca-promocao-seu-destino-e-o-desconto-2106",
+                "imagem": "conexao-sa-shop-paris-seu-destino-e-o-desconto-e-o-luxo-em-foz-do-iguacu-67ea9188e2a6a.png",
+                "titulo": "SA Shop Importados, do Shopping Paris, lança promoção \"Seu destino é o desconto\"",
+                "categoria": "Região"
+            },
+            {
+                "link": "https://foz.portaldacidade.com/noticias/regiao/feira-de-artesanato-e-uma-das-atracoes-do-forum-paranaense-de-turismo-religioso-3843",
+                "imagem": "feira-de-artesanato-e-uma-das-atracoes-do-forum-paranaense-de-turismo-religioso-67ea7ec679bf9.png",
+                "titulo": "Feira de Artesanato é uma das atrações do Fórum Paranaense de Turismo Religioso",
+                "categoria": "Região"
+            }
+        ]
+    },
+    "atualizado_em": "2025-04-01T05:00:24.799005"
+}

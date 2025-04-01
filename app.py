@@ -20,22 +20,27 @@ if __name__ == "__main__":
     try:
         app = QApplication(sys.argv)
 
-        if verificar_primeira_execucao():
+        primeira_vez = verificar_primeira_execucao()
+
+        if primeira_vez:
             config_window = ConfigIni()
             config_window.show()
             app.exec()
 
-        # ✅ Abre a tela principal, mesmo se estiver offline
-        window = ElevatorScreen()
-        window.show()
-
-        # ✅ Executa o atualizador sem travar caso falhe
+        # ✅ Sempre executa o atualizador
         try:
-            subprocess.Popen(["python", "atualizador.py"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            atualizador_path = os.path.join(os.path.dirname(__file__), "atualizador.py")
+            print("🚀 Iniciando atualizador:", atualizador_path)
+            subprocess.Popen(["python", atualizador_path])
         except Exception as e:
             print(f"⚠️ Erro ao iniciar atualizador: {e}")
+
+        window = ElevatorScreen()
+        window.show()
 
         sys.exit(app.exec())
 
     except Exception as e:
         print(f"❌ Erro ao iniciar a aplicação: {e}")
+
+
