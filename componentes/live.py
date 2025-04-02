@@ -3,7 +3,6 @@ import json
 import sys
 import socket
 os.environ["QT_LOGGING_RULES"] = "qt.multimedia.ffmpeg.debug=false"
-sys.stderr = open(os.devnull, 'w')
 from PyQt6.QtCore import QTimer, Qt, QThread, pyqtSignal, QUrl, QSizeF, QRectF
 from PyQt6.QtGui import QPainterPath, QRegion,QTransform
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QGraphicsView, QGraphicsScene, QSizePolicy

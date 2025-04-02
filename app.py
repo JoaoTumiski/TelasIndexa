@@ -2,7 +2,6 @@ import os
 import sys
 import subprocess
 os.environ["QT_LOGGING_RULES"] = "qt.multimedia.ffmpeg.debug=false"
-sys.stderr = open(os.devnull, 'w')
 from PyQt6.QtWidgets import QApplication
 from config_ini import ConfigIni
 from main_window import ElevatorScreen
@@ -15,7 +14,6 @@ def verificar_primeira_execucao():
 if __name__ == "__main__":
     try:
         app = QApplication(sys.argv)
-
         primeira_vez = verificar_primeira_execucao()
 
         if primeira_vez:

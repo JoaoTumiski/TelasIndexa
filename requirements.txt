@@ -6,3 +6,4 @@ qrcode==8.0
 Requests==2.32.3
 supabase==2.14.0
 pillow
+boto3

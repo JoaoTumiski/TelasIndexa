@@ -2,8 +2,7 @@ import os
 import json
 import qrcode
 from PIL import Image
-import boto3
-from botocore.exceptions import ClientError
+import requests
 from PyQt6.QtWidgets import QLabel, QWidget, QVBoxLayout, QHBoxLayout, QSizePolicy
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QPixmap, QPainter, QPainterPath
@@ -15,7 +14,6 @@ QR_CODE_FOLDER = "cache/qrcodes"
 S3_BUCKET = "imagens-noticias"
 S3_PREFIX = "News/"
 LOCAL_NEWS_FOLDER = os.path.join("cache", "News")
-s3 = boto3.client("s3", region_name="sa-east-1")
 
 # 🔥 Criar pastas caso não existam
 os.makedirs("cache", exist_ok=True)
@@ -118,31 +116,41 @@ def verificar_imagem_valida(path):
         return False
 
 def baixar_imagens_noticias_s3():
-    """Baixa todas as imagens da pasta News/ no bucket imagens-noticias"""
+    """Baixa imagens públicas da pasta News/ no bucket imagens-noticias"""
     imagens_validas = 0
-    try:
-        response = s3.list_objects_v2(Bucket=S3_BUCKET, Prefix=S3_PREFIX)
-        for obj in response.get("Contents", []):
-            key = obj["Key"]
-            filename = key.replace(S3_PREFIX, "")
-            if not filename:
+
+    noticias, _ = carregar_noticias_local()
+    if not noticias:
+        print("⚠️ Nenhuma notícia para processar imagens.")
+        return
+
+    os.makedirs(LOCAL_NEWS_FOLDER, exist_ok=True)
+
+    for origem in noticias:
+        for noticia in noticias[origem]:
+            nome_imagem = noticia.get("imagem")
+            if not nome_imagem:
                 continue
-            local_path = os.path.join(LOCAL_NEWS_FOLDER, filename)
+
+            url = f"https://{S3_BUCKET}.s3.sa-east-1.amazonaws.com/{S3_PREFIX}{nome_imagem}"
+            local_path = os.path.join(LOCAL_NEWS_FOLDER, nome_imagem)
+
             try:
-                s3.download_file(S3_BUCKET, key, local_path)
-                print(f"📥 Imagem baixada: {filename}")
+                response = requests.get(url, timeout=10)
+                if response.status_code == 200:
+                    with open(local_path, "wb") as f:
+                        f.write(response.content)
+                    print(f"📥 Imagem baixada: {nome_imagem}")
 
-                # ✅ Verificar se a imagem é válida
-                if verificar_imagem_valida(local_path):
-                    imagens_validas += 1
+                    if verificar_imagem_valida(local_path):
+                        imagens_validas += 1
+                    else:
+                        os.remove(local_path)
+                        print(f"🗑️ Imagem inválida: {nome_imagem}")
                 else:
-                    os.remove(local_path)
-                    print(f"🗑️ Imagem removida por falha de integridade: {filename}")
-
-            except ClientError as e:
-                print(f"❌ Erro ao baixar imagem {key}: {e}")
-    except Exception as e:
-        print(f"❌ Erro ao listar imagens no S3: {e}")
+                    print(f"⚠️ Erro {response.status_code} ao baixar {url}")
+            except Exception as e:
+                print(f"❌ Falha ao baixar {nome_imagem}: {e}")
 
     print(f"✅ {imagens_validas} imagens válidas baixadas com sucesso.")
 
