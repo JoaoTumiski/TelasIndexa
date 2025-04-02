@@ -1,7 +1,9 @@
 import os
 import json
 import qrcode
-import random
+from PIL import Image
+import boto3
+from botocore.exceptions import ClientError
 from PyQt6.QtWidgets import QLabel, QWidget, QVBoxLayout, QHBoxLayout, QSizePolicy
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QPixmap, QPainter, QPainterPath
@@ -10,6 +12,10 @@ from config.database import supabase
 # 🔥 Caminhos dos arquivos locais
 NEWS_JSON_PATH = "cache/noticias.json"
 QR_CODE_FOLDER = "cache/qrcodes"
+S3_BUCKET = "imagens-noticias"
+S3_PREFIX = "News/"
+LOCAL_NEWS_FOLDER = os.path.join("cache", "News")
+s3 = boto3.client("s3", region_name="sa-east-1")
 
 # 🔥 Criar pastas caso não existam
 os.makedirs("cache", exist_ok=True)
@@ -90,29 +96,82 @@ def carregar_noticias_local():
         return None, None
 
 
+def limpar_imagens_antigas_local():
+    """Remove todas as imagens da pasta local 'cache/News'."""
+    for filename in os.listdir(LOCAL_NEWS_FOLDER):
+        file_path = os.path.join(LOCAL_NEWS_FOLDER, filename)
+        try:
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+                print(f"🗑️ Imagem local removida: {file_path}")
+        except Exception as e:
+            print(f"⚠️ Erro ao remover {file_path}: {e}")
+
+def verificar_imagem_valida(path):
+    """Verifica se o arquivo é uma imagem válida e não está corrompido"""
+    try:
+        with Image.open(path) as img:
+            img.verify()  # Verifica se é uma imagem válida
+        return True
+    except Exception as e:
+        print(f"❌ Imagem inválida ou corrompida: {path} — {e}")
+        return False
+
+def baixar_imagens_noticias_s3():
+    """Baixa todas as imagens da pasta News/ no bucket imagens-noticias"""
+    imagens_validas = 0
+    try:
+        response = s3.list_objects_v2(Bucket=S3_BUCKET, Prefix=S3_PREFIX)
+        for obj in response.get("Contents", []):
+            key = obj["Key"]
+            filename = key.replace(S3_PREFIX, "")
+            if not filename:
+                continue
+            local_path = os.path.join(LOCAL_NEWS_FOLDER, filename)
+            try:
+                s3.download_file(S3_BUCKET, key, local_path)
+                print(f"📥 Imagem baixada: {filename}")
+
+                # ✅ Verificar se a imagem é válida
+                if verificar_imagem_valida(local_path):
+                    imagens_validas += 1
+                else:
+                    os.remove(local_path)
+                    print(f"🗑️ Imagem removida por falha de integridade: {filename}")
+
+            except ClientError as e:
+                print(f"❌ Erro ao baixar imagem {key}: {e}")
+    except Exception as e:
+        print(f"❌ Erro ao listar imagens no S3: {e}")
+
+    print(f"✅ {imagens_validas} imagens válidas baixadas com sucesso.")
+
 def verificar_e_atualizar_noticias():
-    """Verifica se precisa atualizar as notícias e baixa um novo JSON se necessário"""
+    """Verifica se precisa atualizar as notícias e atualiza imagens e JSON local."""
     print("🔄 Verificando atualização das notícias...")
 
-    # 🔥 Busca timestamp das notícias salvas localmente
     noticias_local, timestamp_local = carregar_noticias_local()
-
-    # 🔥 Busca do Supabase
     noticias_supabase, timestamp_supabase = obter_noticias_supabase()
 
-    # Se não houver notícias no Supabase, mantém a local
     if not noticias_supabase:
         print("⚠️ Nenhuma notícia disponível no Supabase. Mantendo a versão local.")
         return noticias_local
 
-    # Se os timestamps forem diferentes, atualiza o JSON local
     if timestamp_supabase != timestamp_local:
-        print(f"🔄 Atualização encontrada! Novo timestamp: {timestamp_supabase}")
+        print(f"🆕 Atualização detectada! Novo timestamp: {timestamp_supabase}")
+
+        # 🔥 Etapa 1: Limpa imagens antigas
+        limpar_imagens_antigas_local()
+
+        # 🔥 Etapa 2: Baixa novas imagens do bucket 'imagens-noticias/News/'
+        baixar_imagens_noticias_s3()
+
+        # 🔥 Etapa 3: Salva novo JSON local apenas após as imagens
         salvar_noticias_localmente(noticias_supabase, timestamp_supabase)
-        return noticias_supabase  # Retorna as novas notícias
+        return noticias_supabase
 
     print("✅ Notícias já estão atualizadas. Nenhuma ação necessária.")
-    return noticias_local  # Retorna as notícias já salvas
+    return noticias_local
 
 class NewsWidget(QWidget):
     def __init__(self):
@@ -272,7 +331,7 @@ class NewsWidget(QWidget):
 
         for origem, lista in noticias.items():
             for noticia in lista:
-                titulo = noticia.get("titulo", "Sem título")
+                titulo = noticia.get("titulo", "Sem título") 
                 link = noticia.get("link", "")
                 categoria = noticia.get("categoria", "Geral")
                 imagem = noticia.get("imagem")

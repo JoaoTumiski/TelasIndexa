@@ -40,7 +40,6 @@ def processar_json(json_path):
             "Propagandas": "video",
             "Banners": "imagem",
             "CondominiumNotices": "mensagem",
-            "News": "imagem"
         }
 
 
