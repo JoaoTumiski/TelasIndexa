@@ -1,17 +1,13 @@
 import os
 import sys
 import subprocess
+os.environ["QT_LOGGING_RULES"] = "qt.multimedia.ffmpeg.debug=false"
+sys.stderr = open(os.devnull, 'w')
 from PyQt6.QtWidgets import QApplication
 from config_ini import ConfigIni
 from main_window import ElevatorScreen
 
 CONFIG_FILE = "config.json"
-
-# 🔇 Suprime logs do FFmpeg enviados ao stderr
-sys.stderr = open(os.devnull, 'w')
-
-# 🔧 Desativa debug de ffmpeg do Qt
-os.environ["QT_LOGGING_RULES"] = "qt.multimedia.ffmpeg.debug=false"
 
 def verificar_primeira_execucao():
     return not os.path.exists(CONFIG_FILE)

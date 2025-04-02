@@ -4,7 +4,7 @@ import requests
 import time
 import sys
 import subprocess
-
+sys.stdout = open(os.devnull, 'w')
 BASE_DIR = getattr(sys, '_MEIPASS', os.path.abspath("."))
 
 # Configurações
@@ -17,19 +17,18 @@ def carregar_config():
     """Carrega o ID do cliente a partir do arquivo config.json"""
     if not os.path.exists(CONFIG_PATH):
         print(f"❌ Arquivo de configuração não encontrado: {CONFIG_PATH}")
-        return 102  # Retorna um ID padrão caso não encontre
+        return 101  # Retorna um ID padrão caso não encontre
 
     try:
         with open(CONFIG_PATH, "r", encoding="utf-8") as file:
             config_data = json.load(file)
-            return int(config_data.get("tela_id", 102))  # Retorna 102 se não encontrar
+            return int(config_data.get("tela_id", 101))  # Retorna 101 se não encontrar
     except Exception as e:
         print(f"❌ Erro ao carregar config.json: {e}")
-        return 102  # Retorna um ID padrão caso haja erro
+        return 101  # Retorna um ID padrão caso haja erro
 
 # 🔹 Define o CLIENTE_ID dinamicamente
 CLIENTE_ID = carregar_config()
-print(f"✅ Cliente ID carregado: {CLIENTE_ID}")  # Debug para garantir que carregou
 
 # Criar a pasta cache caso não exista
 os.makedirs(CACHE_DIR, exist_ok=True)
@@ -85,9 +84,6 @@ def verificar_atualizacao():
             else:
                 print("❌ Ocorreu um erro ao baixar a atualização.")
 
-        else:
-            print("✅ Nenhuma nova atualização disponível.")
-
     except requests.exceptions.RequestException as e:
         print(f"⚠️ Erro ao conectar ao servidor: {e}")
 
@@ -126,13 +122,11 @@ if __name__ == "__main__":
     tempo_espera = 1200  # Tempo inicial de espera (segundos)
 
     # ✅ Executa verificação logo no início
-    print("🚀 Verificando atualização inicial...")
     verificar_atualizacao()
 
     while True:
         try:
             verificar_atualizacao()
-            print(f"⏳ Aguardando {tempo_espera // 60} minutos para nova verificação...")
             time.sleep(tempo_espera)
 
         except Exception as e:
