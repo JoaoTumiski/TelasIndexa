@@ -77,32 +77,32 @@ CLIENTE_ID = carregar_config()
 from config.database import supabase
 
 def verificar_e_atualizar_live():
-    url_local, timestamp_local = carregar_live_local()
+    lives_locais, timestamp_local = carregar_live_local()
 
     if not supabase:
         print("⚠️ Supabase indisponível. Usando cache local.")
-        return url_local
+        return lives_locais or []
 
     try:
-        response = supabase.table("cameras").select("url, data_criacao") \
-            .eq("cliente_id", CLIENTE_ID).order("data_criacao", desc=True).execute()
+        response = supabase.table("cameras").select("url, data_criacao, timing").order("data_criacao", desc=True).execute()
 
         if response.data:
-            url_supabase = response.data[0]["url"]
             timestamp_supabase = response.data[0]["data_criacao"]
+
             if timestamp_supabase != timestamp_local:
-                salvar_live_localmente(url_supabase, timestamp_supabase)
-                return url_supabase
+                lives = [{"url": item["url"], "timing": item.get("timing", 30)} for item in response.data]
+                salvar_live_localmente(lives, timestamp_supabase)
+                return lives
 
     except Exception as e:
-        print(f"⚠️ Erro ao buscar live no Supabase: {e}")
+        print(f"⚠️ Erro ao buscar lives no Supabase: {e}")
 
-    return url_local
+    return lives_locais or []
 
-def salvar_live_localmente(url, data_criacao):
+def salvar_live_localmente(lives, data_criacao):
     try:
         with open(LIVE_JSON_PATH, "w", encoding="utf-8") as file:
-            json.dump({"url": url, "data_criacao": data_criacao}, file, indent=4, ensure_ascii=False)
+            json.dump({"lives": lives, "data_criacao": data_criacao}, file, indent=4, ensure_ascii=False)
     except:
         pass
 
@@ -112,7 +112,7 @@ def carregar_live_local():
     try:
         with open(LIVE_JSON_PATH, "r", encoding="utf-8") as file:
             data = json.load(file)
-            return data.get("url"), data.get("data_criacao")
+            return data.get("lives", []), data.get("data_criacao")
     except:
         return None, None
 
@@ -123,8 +123,8 @@ class LiveWidget(QWidget):
         self.internet_conectada = True
         self.reconectando = False
 
-        self.lives = [verificar_e_atualizar_live()]
-        self.live_url = self.lives[0] if self.lives else None
+        self.lives = verificar_e_atualizar_live() or []
+        self.live_url = self.lives[0]["url"] if self.lives else None
         self.current_live_index = 0
 
         self.layout = QVBoxLayout()
@@ -202,32 +202,40 @@ class LiveWidget(QWidget):
 
     def set_media(self, url=None):
         if not url:
-            url = self.live_url
-        if isinstance(url, list):
-            url = url[0]
+            if isinstance(self.live_url, dict):
+                url = self.live_url.get("url")
+            else:
+                url = self.live_url
+        elif isinstance(url, dict):
+            url = url.get("url")
+
         if url:
             self.live_url = url
-            self.player.setSource(QUrl(self.live_url))
-            print(f"🎬 Mídia configurada: {self.live_url}")
+            self.player.setSource(QUrl(url))
+            print(f"🎬 Mídia configurada: {url}")
 
     def start_live(self):
         if self.live_url:
             self.player.play()
 
     def switch_live(self):
-        if len(self.lives) > 1:
+        if self.lives:
             self.current_live_index = (self.current_live_index + 1) % len(self.lives)
-            self.live_url = self.lives[self.current_live_index]
+            self.live_url = self.lives[self.current_live_index]["url"]
             self.set_media()
             self.start_live()
+
+            # Reinicia o timer com o novo timing
+            timing = self.lives[self.current_live_index].get("timing", 30)
+            self.switch_timer.start(timing * 1000)
 
     def atualizar_live(self):
         nova_live = verificar_e_atualizar_live()
 
         if nova_live:
-            self.live_url = nova_live
-            self.lives = [nova_live]
+            self.lives = nova_live
             self.current_live_index = 0
+            self.live_url = self.lives[0]["url"]
 
             # 🔁 Sempre reinicia a mídia, mesmo que a URL seja a mesma
             self.player.stop()
@@ -296,5 +304,3 @@ class LiveWidget(QWidget):
         self.reconectar_thread.finished.connect(lambda: setattr(self, "reconectando", False))
         self.reconectando = True
         self.reconectar_thread.start()
-
-

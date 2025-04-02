@@ -262,38 +262,54 @@ class NewsWidget(QWidget):
         self.update_timer.start(1200000)  # 20 minutos (1.200.000 ms)
 
     def get_news_from_json(self):
-        """Obtém as notícias do JSON salvo localmente e gera QR Codes."""
+        """Obtém as notícias do JSON salvo localmente e gera QR Codes intercalados em loop entre J e P."""
         noticias, _ = carregar_noticias_local()
         if not noticias:
             return []
 
-        news_list = []
+        lista_jp = []
+        lista_pc = []
 
-        for origem, lista in noticias.items():  # origem = 'portal_cidade' ou 'jovempan'
+        for origem, lista in noticias.items():
             for noticia in lista:
                 titulo = noticia.get("titulo", "Sem título")
                 link = noticia.get("link", "")
                 categoria = noticia.get("categoria", "Geral")
+                imagem = noticia.get("imagem")
                 qr_path = self.generate_qr_code(link)
 
-                news_list.append({
+                item = {
                     "titulo": titulo,
                     "categoria": categoria,
                     "qr_code": qr_path if os.path.exists(qr_path) else None,
-                    "origem": origem,  # 🔹 Adiciona a origem
-                    "imagem": noticia.get("imagem")
-                })
+                    "origem": origem,
+                    "imagem": imagem
+                }
 
-            titulo = noticia.get("titulo", "Sem título")
-            link = noticia.get("link", "")
-            categoria = noticia.get("categoria", "Geral")
+                if origem == "jovempan":
+                    lista_jp.append(item)
+                elif origem == "portal_cidade":
+                    lista_pc.append(item)
 
-            # 🔹 Gerar QR Code a partir do link
-            qr_path = self.generate_qr_code(link)
+        if not lista_jp and not lista_pc:
+            return []
 
-            random.shuffle(news_list)
+        intercalados = []
+        i_jp = 0
+        i_pc = 0
 
-        return news_list
+        # 🔁 Gera uma lista intercalada até o maior número de combinações possível
+        total = max(len(lista_jp), len(lista_pc)) * 2  # dobra pois intercalamos os dois
+        for _ in range(total):
+            if lista_jp:
+                intercalados.append(lista_jp[i_jp % len(lista_jp)])
+                i_jp += 1
+            if lista_pc:
+                intercalados.append(lista_pc[i_pc % len(lista_pc)])
+                i_pc += 1
+
+        return intercalados
+
 
     def update_news(self):
         """Atualiza a notícia exibida no widget"""

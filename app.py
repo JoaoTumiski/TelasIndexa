@@ -27,7 +27,7 @@ if __name__ == "__main__":
         try:
             atualizador_path = os.path.join(os.path.dirname(__file__), "atualizador.py")
             print("🚀 Iniciando atualizador:", atualizador_path)
-            subprocess.Popen(["python", atualizador_path])
+            subprocess.Popen(["python", atualizador_path], creationflags=subprocess.CREATE_NO_WINDOW)
         except Exception as e:
             print(f"⚠️ Erro ao iniciar atualizador: {e}")
 

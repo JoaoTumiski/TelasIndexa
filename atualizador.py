@@ -16,7 +16,7 @@ CONFIG_PATH = "config.json"
 def carregar_config():
     """Carrega o ID do cliente a partir do arquivo config.json"""
     if not os.path.exists(CONFIG_PATH):
-        print(f"❌ Arquivo de configuração não encontrado: {CONFIG_PATH}")
+        print(f" Arquivo de configuração não encontrado: {CONFIG_PATH}")
         return 101  # Retorna um ID padrão caso não encontre
 
     try:
@@ -24,7 +24,7 @@ def carregar_config():
             config_data = json.load(file)
             return int(config_data.get("tela_id", 101))  # Retorna 101 se não encontrar
     except Exception as e:
-        print(f"❌ Erro ao carregar config.json: {e}")
+        print(f" Erro ao carregar config.json: {e}")
         return 101  # Retorna um ID padrão caso haja erro
 
 # 🔹 Define o CLIENTE_ID dinamicamente
@@ -40,7 +40,7 @@ def carregar_versao():
             with open(VERSAO_FILE, "r") as file:
                 return json.load(file).get("versao", 1)
         except Exception as e:
-            print(f"⚠️ Erro ao ler versão local: {e}")
+            print(f" Erro ao ler versão local: {e}")
             return 1
     return 1  # Se o arquivo não existir, assume que está na versão 1
 
@@ -50,7 +50,7 @@ def salvar_versao(nova_versao):
         with open(VERSAO_FILE, "w") as file:
             json.dump({"versao": nova_versao}, file)
     except Exception as e:
-        print(f"⚠️ Erro ao salvar versão: {e}")
+        print(f" Erro ao salvar versão: {e}")
 
 def verificar_atualizacao():
     """Verifica no servidor se há nova versão"""
@@ -62,33 +62,33 @@ def verificar_atualizacao():
             nova_versao = response.json()["versao"]
             download_url = response.json()["download_url"]
 
-            print(f"🔄 Nova atualização disponível: {nova_versao}. Baixando...")
+            print(f" Nova atualização disponível: {nova_versao}. Baixando...")
             destino_arquivo = os.path.join(CACHE_DIR, f"update_{nova_versao}.zip")
 
             # ✅ **Baixar o arquivo antes de continuar**
             if baixar_arquivo(download_url, destino_arquivo):
                 salvar_versao(nova_versao)
-                print("✅ Atualização concluída!")
+                print(" Atualização concluída!")
 
                 # 🔥 **Aguardar para garantir que o arquivo foi salvo corretamente**
                 time.sleep(2)
 
                 # 🔥 **Executar `unzip.py` para extrair**
-                print(f"📂 Extraindo arquivos da atualização {nova_versao}...")
-                subprocess.run(["python", "unzip.py", destino_arquivo])
+                print(f" Extraindo arquivos da atualização {nova_versao}...")
+                subprocess.run(["python", "unzip.py", destino_arquivo], creationflags=subprocess.CREATE_NO_WINDOW)
 
                 # 🔥 **Deletar o ZIP somente após a extração**
                 if os.path.exists(destino_arquivo):
                     os.remove(destino_arquivo)
-                    print(f"🗑️ Arquivo ZIP {destino_arquivo} removido após extração.")
+                    print(f" Arquivo ZIP {destino_arquivo} removido após extração.")
             else:
-                print("❌ Ocorreu um erro ao baixar a atualização.")
+                print(" Ocorreu um erro ao baixar a atualização.")
 
     except requests.exceptions.RequestException as e:
-        print(f"⚠️ Erro ao conectar ao servidor: {e}")
+        print(f" Erro ao conectar ao servidor: {e}")
 
     except Exception as e:
-        print(f"❌ Erro inesperado ao verificar atualização: {e}")
+        print(f" Erro inesperado ao verificar atualização: {e}")
 
 def baixar_arquivo(url, destino):
     """Baixa o arquivo de atualização e verifica se foi baixado corretamente"""
@@ -101,21 +101,21 @@ def baixar_arquivo(url, destino):
 
             # ✅ **Verificar se o arquivo realmente existe antes de continuar**
             if os.path.exists(destino):
-                print(f"📦 Download concluído: {destino}")
+                print(f"Download concluído: {destino}")
                 return True
             else:
-                print("❌ Ocorreu um erro no download. Arquivo não encontrado após o download.")
+                print(" Ocorreu um erro no download. Arquivo não encontrado após o download.")
                 return False
         else:
-            print(f"❌ Erro ao baixar o arquivo. Status: {response.status_code}")
+            print(f" Erro ao baixar o arquivo. Status: {response.status_code}")
             return False
 
     except requests.exceptions.RequestException as e:
-        print(f"⚠️ Erro na requisição de download: {e}")
+        print(f" Erro na requisição de download: {e}")
         return False
 
     except Exception as e:
-        print(f"❌ Erro inesperado ao baixar arquivo: {e}")
+        print(f" Erro inesperado ao baixar arquivo: {e}")
         return False
 
 if __name__ == "__main__":
@@ -130,6 +130,6 @@ if __name__ == "__main__":
             time.sleep(tempo_espera)
 
         except Exception as e:
-            print(f"❌ Erro inesperado no loop principal: {e}")
-            print("🔄 Reiniciando verificação após 30 segundos...")
+            print(f" Erro inesperado no loop principal: {e}")
+            print(" Reiniciando verificação após 30 segundos...")
             time.sleep(30)  # Espera antes de tentar novamente
