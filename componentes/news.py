@@ -14,10 +14,28 @@ QR_CODE_FOLDER = "cache/qrcodes"
 S3_BUCKET = "imagens-noticias"
 S3_PREFIX = "News/"
 LOCAL_NEWS_FOLDER = os.path.join("cache", "News")
+CONFIG_PATH = "config.json"
 
 # 🔥 Criar pastas caso não existam
 os.makedirs("cache", exist_ok=True)
 os.makedirs(QR_CODE_FOLDER, exist_ok=True)
+
+def carregar_config():
+    """Carrega o ID do cliente a partir do arquivo config.json"""
+    if not os.path.exists(CONFIG_PATH):
+        print(f" Arquivo de configuração não encontrado: {CONFIG_PATH}")
+        return 101  # Retorna um ID padrão caso não encontre
+
+    try:
+        with open(CONFIG_PATH, "r", encoding="utf-8") as file:
+            config_data = json.load(file)
+            return int(config_data.get("tela_id", 101))  # Retorna 101 se não encontrar
+    except Exception as e:
+        print(f" Erro ao carregar config.json: {e}")
+        return 101  # Retorna um ID padrão caso haja erro
+
+# 🔹 Define o CLIENTE_ID dinamicamente
+CLIENTE_ID = carregar_config()
 
 def arredondar_pixmap(pixmap, radius):
         """Retorna um QPixmap com cantos arredondados."""
@@ -478,18 +496,21 @@ class NewsWidget(QWidget):
 
 
     def generate_qr_code(self, link):
-        """Gera um QR Code para o link da notícia"""
+        """Gera um QR Code para o link da notícia via endpoint do backend"""
         if not link:
             return None
 
-        qr_filename = f"{hash(link)}.png"
+        # ⚠️ Substitua pelo domínio público ou IP do seu servidor
+        backend_url = f"http://15.228.8.3:8000/leitura?cliente_id={CLIENTE_ID}&link={link}"
+        qr_filename = f"{hash(backend_url)}.png"
         qr_path = os.path.join(self.qr_folder, qr_filename)
 
-        if not os.path.exists(qr_path):  # 🔹 Só cria se ainda não existir
-            qr = qrcode.make(link)
+        if not os.path.exists(qr_path):
+            qr = qrcode.make(backend_url)
             qr.save(qr_path)
 
         return qr_path
+    
     def resizeEvent(self, event):
         """Redimensiona o fundo e o overlay para cobrir toda a área"""
         self.background_container.setGeometry(0, 0, self.width(), self.height())  # Fundo
