@@ -1,5 +1,6 @@
 import os
 import json
+import atexit
 import requests
 import time
 import sys
@@ -90,6 +91,10 @@ def verificar_atualizacao():
     except Exception as e:
         print(f" Erro inesperado ao verificar atualização: {e}")
 
+def limpar_lockfile():
+    if os.path.exists(LOCKFILE):
+        os.remove(LOCKFILE)
+
 def baixar_arquivo(url, destino):
     """Baixa o arquivo de atualização e verifica se foi baixado corretamente"""
     try:
@@ -119,11 +124,37 @@ def baixar_arquivo(url, destino):
         return False
 
 if __name__ == "__main__":
-    tempo_espera = 1200  # Tempo inicial de espera (segundos)
+    tempo_espera = 1200  # Tempo em segundos (20 minutos)
 
-    # ✅ Executa verificação logo no início
-    verificar_atualizacao()
+    LOCKFILE = os.path.join(CACHE_DIR, "atualizador.lock")
 
+    # Verifica se já está rodando
+    if os.path.exists(LOCKFILE):
+        try:
+            with open(LOCKFILE, "r") as f:
+                pid = int(f.read())
+
+            # Verifica se o processo com esse PID ainda existe
+            import psutil
+            if psutil.pid_exists(pid):
+                print("O atualizador já está em execução (processo ativo). Abortando nova instância.")
+                sys.exit(0)
+            else:
+                print(" Lockfile encontrado, mas processo inativo. Limpando lockfile antigo.")
+                os.remove(LOCKFILE)
+
+        except Exception as e:
+            print(f" Erro ao validar lockfile: {e}. Limpando mesmo assim.")
+            os.remove(LOCKFILE)
+
+    # Cria o lockfile
+    with open(LOCKFILE, "w") as f:
+        f.write(str(os.getpid()))
+
+    # 🔥 Garante que o lock será limpo ao encerrar
+    atexit.register(limpar_lockfile)
+
+    # 🔁 Loop de verificação (a primeira e as seguintes)
     while True:
         try:
             verificar_atualizacao()
@@ -132,4 +163,6 @@ if __name__ == "__main__":
         except Exception as e:
             print(f" Erro inesperado no loop principal: {e}")
             print(" Reiniciando verificação após 30 segundos...")
-            time.sleep(30)  # Espera antes de tentar novamente
+            time.sleep(30)
+
+

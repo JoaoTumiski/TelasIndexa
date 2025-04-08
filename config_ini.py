@@ -4,10 +4,11 @@ import json
 import subprocess
 from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QPushButton, QLineEdit
 from PyQt6.QtGui import QPixmap
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import Qt, QTimer, QCoreApplication
 
 CONFIG_FILE = "config.json"
 EXTRACT_PATH = "cache"  # Pasta onde os arquivos extraídos serão armazenados
+atualizador_proc = None
 
 class ConfigIni(QMainWindow):
     def __init__(self):
@@ -53,6 +54,17 @@ class ConfigIni(QMainWindow):
         self.check_timer = QTimer(self)
         self.check_timer.timeout.connect(self.verificar_json_criado)
 
+
+    def encerrar_atualizador(self):
+        global atualizador_proc
+        if atualizador_proc and atualizador_proc.poll() is None:
+            print("🛑 Encerrando atualizador...")
+            try:
+                atualizador_proc.terminate()
+                atualizador_proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                atualizador_proc.kill()
+
     def salvar_config(self):
         """Salva o ID da Tela, exibe mensagem e inicia atualização"""
         entrada = self.text_input.text().strip()  # Ex: "101_1" ou "101"
@@ -77,12 +89,15 @@ class ConfigIni(QMainWindow):
             self.text_input.setEnabled(False)
 
             # Iniciar atualização e extração
-            subprocess.Popen(["python", "atualizador.py"])
+            global atualizador_proc
+            atualizador_proc = subprocess.Popen(
+            [sys.executable, "atualizador.py"],
+            creationflags=subprocess.CREATE_NO_WINDOW)
             subprocess.Popen(["python", "unzip.py"])
 
             # Iniciar o timer para verificar se o JSON foi criado
             self.check_timer.start(3000)  # Verifica a cada 3 segundos
-
+            QCoreApplication.instance().aboutToQuit.connect(self.encerrar_atualizador)
 
     def verificar_json_criado(self):
         """Verifica se o arquivo <id_da_tela>.json foi criado"""
@@ -94,8 +109,8 @@ class ConfigIni(QMainWindow):
         """Fecha a janela e inicia a aplicação"""
         self.status_label.setText("✅ Arquivos baixados e extraídos!")
 
-        # Iniciar a tela principal (app.py)
-        subprocess.Popen(["python", "app.py"])
+        # Iniciar a tela principal (sistema.py)
+        subprocess.Popen(["python", "sistema.py"])
 
         # Parar o timer e fechar a janela
         self.check_timer.stop()
