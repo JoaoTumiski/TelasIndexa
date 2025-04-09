@@ -1,6 +1,7 @@
 import sys
 import os
 import json
+import atexit
 import subprocess
 from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QPushButton, QLineEdit
 from PyQt6.QtGui import QPixmap
@@ -83,21 +84,42 @@ class ConfigIni(QMainWindow):
             with open(CONFIG_FILE, "w") as f:
                 json.dump(config, f)
 
-            # Atualizar status e desativar botão
             self.status_label.setText("📡 Fazendo download dos arquivos...")
             self.button.setEnabled(False)
             self.text_input.setEnabled(False)
 
-            # Iniciar atualização e extração
+            # 🔥 Criar caminhos apenas agora
+            atualizador_path = os.path.join(os.path.dirname(__file__), "atualizador.py")
+            verificador_path = os.path.join(os.path.dirname(__file__), "verificador_sistema.py")
+
+            # Iniciar subprocessos
             global atualizador_proc
             atualizador_proc = subprocess.Popen(
-            [sys.executable, "atualizador.py"],
-            creationflags=subprocess.CREATE_NO_WINDOW)
+                [sys.executable, atualizador_path],
+                creationflags=subprocess.CREATE_NO_WINDOW
+            )
+            verificador_proc = subprocess.Popen(
+                [sys.executable, verificador_path],
+                creationflags=subprocess.CREATE_NO_WINDOW
+            )
             subprocess.Popen(["python", "unzip.py"])
 
-            # Iniciar o timer para verificar se o JSON foi criado
-            self.check_timer.start(3000)  # Verifica a cada 3 segundos
-            QCoreApplication.instance().aboutToQuit.connect(self.encerrar_atualizador)
+            # 🔥 Encerramento seguro
+            def encerrar_processos():
+                for proc in [atualizador_proc, verificador_proc]:
+                    if proc and proc.poll() is None:
+                        print("🛑 Encerrando subprocesso...")
+                        proc.terminate()
+                        try:
+                            proc.wait(timeout=5)
+                        except subprocess.TimeoutExpired:
+                            proc.kill()
+
+            QCoreApplication.instance().aboutToQuit.connect(encerrar_processos)
+            atexit.register(encerrar_processos)
+
+            # Verificação do update.json
+            self.check_timer.start(3000)
 
     def verificar_json_criado(self):
         """Verifica se o arquivo <id_da_tela>.json foi criado"""

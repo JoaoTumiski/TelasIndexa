@@ -82,6 +82,10 @@ def verificar_atualizacao():
                 if os.path.exists(destino_arquivo):
                     os.remove(destino_arquivo)
                     print(f" Arquivo ZIP {destino_arquivo} removido após extração.")
+                    try:
+                        requests.post(f"{SERVER_URL}/confirm-update/{CLIENTE_ID}", timeout=10)
+                    except:
+                        pass
             else:
                 print(" Ocorreu um erro ao baixar a atualização.")
 

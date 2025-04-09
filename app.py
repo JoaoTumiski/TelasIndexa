@@ -11,17 +11,12 @@ from main_window import ElevatorScreen
 CONFIG_FILE = "config.json"
 atualizador_proc = None
 
+# Substitua essa parte no app.py
+atualizador_path = os.path.join(os.path.dirname(__file__), "atualizador.py")
+verificador_path = os.path.join(os.path.dirname(__file__), "verificador_sistema.py")
+
 def verificar_primeira_execucao():
     return not os.path.exists(CONFIG_FILE)
-
-def encerrar_atualizador():
-    if atualizador_proc and atualizador_proc.poll() is None:
-        print("🛑 Encerrando atualizador...")
-        atualizador_proc.terminate()
-        try:
-            atualizador_proc.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            atualizador_proc.kill()
 
 if __name__ == "__main__":
     try:
@@ -38,12 +33,26 @@ if __name__ == "__main__":
             atualizador_path = os.path.join(os.path.dirname(__file__), "atualizador.py")
             print("🚀 Iniciando atualizador:", atualizador_path)
             atualizador_proc = subprocess.Popen(
-                [sys.executable, atualizador_path],
-                creationflags=subprocess.CREATE_NO_WINDOW
-            )
+            [sys.executable, atualizador_path],
+            creationflags=subprocess.CREATE_NO_WINDOW)
 
-            QCoreApplication.instance().aboutToQuit.connect(encerrar_atualizador)
-            atexit.register(encerrar_atualizador)
+            verificador_proc = subprocess.Popen(
+            [sys.executable, verificador_path],
+            creationflags=subprocess.CREATE_NO_WINDOW)
+
+            # Encerrar ambos os subprocessos ao sair
+            def encerrar_processos():
+                for proc in [atualizador_proc, verificador_proc]:
+                    if proc and proc.poll() is None:
+                        print("🛑 Encerrando subprocesso...")
+                        proc.terminate()
+                        try:
+                            proc.wait(timeout=5)
+                        except subprocess.TimeoutExpired:
+                            proc.kill()
+
+            QCoreApplication.instance().aboutToQuit.connect(encerrar_processos)
+            atexit.register(encerrar_processos)
 
         except Exception as e:
             print(f"⚠️ Erro ao iniciar atualizador: {e}")
