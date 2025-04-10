@@ -4,7 +4,7 @@ import subprocess
 import atexit
 os.environ["QT_LOGGING_RULES"] = "qt.multimedia.ffmpeg.debug=false"
 from PyQt6.QtWidgets import QApplication
-from PyQt6.QtCore import QCoreApplication 
+from PyQt6.QtCore import QCoreApplication, Qt
 from config_ini import ConfigIni
 from main_window import ElevatorScreen
 
@@ -33,8 +33,7 @@ if __name__ == "__main__":
             atualizador_path = os.path.join(os.path.dirname(__file__), "atualizador.py")
             print("🚀 Iniciando atualizador:", atualizador_path)
             atualizador_proc = subprocess.Popen(
-            [sys.executable, atualizador_path],
-            creationflags=subprocess.CREATE_NO_WINDOW)
+            [sys.executable, atualizador_path])
 
             verificador_proc = subprocess.Popen(
             [sys.executable, verificador_path],

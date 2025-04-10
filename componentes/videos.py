@@ -4,12 +4,19 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QSizePolicy
 from PyQt6.QtMultimedia import QMediaPlayer
 from PyQt6.QtMultimediaWidgets import QVideoWidget
 from PyQt6.QtCore import QUrl, Qt, QTimer
+import glob
 from itertools import cycle
 
+
+def has_new_videos(current_list, folder):
+    current_files = set(os.path.basename(p) for p in current_list)
+    all_files = set(os.path.basename(p) for p in glob.glob(os.path.join(folder, "**/*.mp4"), recursive=True))
+    return not current_files.issuperset(all_files)
 
 class VideoWidget(QWidget):
     def __init__(self):
         super().__init__()
+        self.entretenimento_json = "cache/entretenimento_update.json"
         self.json_path = "cache/update.json"
         self.video_folder_propagandas = "cache/Propagandas"
         self.video_folder_entretenimento = "cache/Entretenimento"
@@ -61,19 +68,20 @@ class VideoWidget(QWidget):
         self.update_timer.timeout.connect(self.update_video_list)
         self.update_timer.start(10000)  # Verifica a cada 10 segundos
 
-
     def update_video_list(self):
-        """Verifica se houve mudanças no JSON e atualiza a lista de reprodução."""
+        """Verifica se houve mudanças no JSON ou arquivos físicos e atualiza a lista de reprodução."""
         new_video_list = self.get_videos_from_json()
 
-        if new_video_list != self.video_list:  # 🔹 Só atualiza se houver mudanças
-            print("🔄 Atualizando lista de vídeos...")
+        arquivos_novos = has_new_videos(self.video_list, self.video_folder_propagandas)
+
+        if new_video_list != self.video_list or arquivos_novos:
+            print("🔄 Atualizando lista de vídeos (JSON ou novos arquivos detectados)...")
             self.video_list = new_video_list
             self.current_video_index = 0  # Reinicia o índice
 
             # 🔹 Se o vídeo atual não estiver mais na lista, troca para o primeiro disponível
             if not self.video_list or (self.player.source().toLocalFile() not in self.video_list):
-                print("▶️ Trocando vídeo pois o atual foi removido.")
+                print("▶️ Trocando vídeo pois o atual foi removido ou a lista foi recriada.")
                 self.play_video(self.video_list[0] if self.video_list else None)
 
     def stop_and_release_video(self):
@@ -83,57 +91,68 @@ class VideoWidget(QWidget):
 
 
     def get_videos_from_json(self):
-        """Obtém todos os vídeos de Propagandas e Entretenimento, intercalando na ordem."""
+        """Intercala: propaganda → curiosidade → propaganda → engraçado → propaganda → enigma"""
         if not os.path.exists(self.json_path):
             print(f"⚠️ Arquivo JSON não encontrado: {self.json_path}")
             return []
 
         try:
+            # 🔹 Carrega propagandas do update.json
             with open(self.json_path, "r", encoding="utf-8") as file:
-                data = json.load(file)
+                data_propagandas = json.load(file)
 
-            def listar_validos(categoria, pasta):
+            # 🔹 Carrega entretenimento do JSON separado
+            if os.path.exists(self.entretenimento_json):
+                with open(self.entretenimento_json, "r", encoding="utf-8") as f:
+                    data_entretenimento = json.load(f)
+            else:
+                data_entretenimento = {"entretenimento": []}
+
+            def listar_videos_por_categoria(lista_json, base_folder, categoria_desejada=None):
                 validos = []
                 deletados = []
-                for item in data.get(categoria, []):
-                    video_nome = os.path.basename(item.get("video", ""))
-                    video_path = os.path.join(pasta, video_nome)
 
+                for item in lista_json:
                     if item.get("status") == "deleted":
-                        if os.path.exists(video_path):
-                            deletados.append(video_path)
-                    elif os.path.exists(video_path):
-                        validos.append(video_path)
+                        continue
+
+                    categoria = item.get("categoria")
+                    if categoria_desejada and categoria != categoria_desejada:
+                        continue
+
+                    nome_arquivo = os.path.basename(item.get("video", ""))
+                    caminho = os.path.join(base_folder, categoria or "", nome_arquivo)
+
+                    if os.path.exists(caminho):
+                        validos.append(caminho)
                     else:
-                        print(f"⚠️ Arquivo ausente: {video_path}")
-                return validos, deletados
+                        print(f"⚠️ Arquivo ausente: {caminho}")
 
-            propagandas, deletar_p1 = listar_validos("Propagandas", self.video_folder_propagandas)
-            entretenimentos, deletar_p2 = listar_validos("Entretenimento", self.video_folder_entretenimento)
+                return validos
 
-           # 🔁 Intercalar com repetição cíclica de propagandas
+            propagandas = listar_videos_por_categoria(data_propagandas.get("Propagandas", []), self.video_folder_propagandas)
+            curiosidades = listar_videos_por_categoria(data_entretenimento.get("entretenimento", []), self.video_folder_entretenimento, "curiosidades")
+            engracados   = listar_videos_por_categoria(data_entretenimento.get("entretenimento", []), self.video_folder_entretenimento, "engracados")
+            enigmas      = listar_videos_por_categoria(data_entretenimento.get("entretenimento", []), self.video_folder_entretenimento, "enigmas")
+
+
+            # 🔁 Intercala conforme ciclo definido
             intercalados = []
+            propaganda_cycle = cycle(propagandas) if propagandas else None
 
-            if propagandas and entretenimentos:
-                propaganda_cycle = cycle(propagandas)  # Garante repetição infinita
-                for ent in entretenimentos:
-                    intercalados.append(next(propaganda_cycle))
-                    intercalados.append(ent)
-            elif propagandas:  # Se só houver propagandas
-                intercalados = propagandas
-            elif entretenimentos:  # Se só houver entretenimento
-                intercalados = entretenimentos
+            categorias = [curiosidades, engracados, enigmas]
+            i = 0
+            while any(categorias):
+                atual = categorias[i % 3]
+                if atual:
+                    if propaganda_cycle:
+                        intercalados.append(next(propaganda_cycle))
+                    intercalados.append(atual.pop(0))
+                i += 1
 
-            # Excluir os deletados (se houver)
-            deletados = deletar_p1 + deletar_p2
-            if deletados:
-                self.stop_and_release_video()
-                for file in deletados:
-                    try:
-                        os.remove(file)
-                        print(f"🗑️ Vídeo deletado: {file}")
-                    except Exception as e:
-                        print(f"❌ Erro ao deletar {file}: {e}")
+            # Caso só tenha propagandas ou só entretenimento
+            if not intercalados:
+                intercalados = propagandas + curiosidades + engracados + enigmas
 
             return intercalados
 
@@ -154,12 +173,15 @@ class VideoWidget(QWidget):
                 self.play_video(self.video_list[self.current_video_index])
 
     def handle_video_end(self, status):
-        """Muda para o próximo vídeo quando um termina"""
         if status == QMediaPlayer.MediaStatus.EndOfMedia:
             self.current_video_index += 1
 
             if self.current_video_index >= len(self.video_list):
                 print("🔄 Reiniciando a lista de vídeos...")
-                self.current_video_index = 0  # Reinicia do primeiro vídeo
+                self.current_video_index = 0
 
-            self.play_video(self.video_list[self.current_video_index])
+            if self.video_list:
+                self.play_video(self.video_list[self.current_video_index])
+            else:
+                print("⚠️ Lista de vídeos vazia após reinício.")
+

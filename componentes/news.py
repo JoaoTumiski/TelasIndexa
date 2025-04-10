@@ -7,6 +7,8 @@ from PyQt6.QtWidgets import QLabel, QWidget, QVBoxLayout, QHBoxLayout, QSizePoli
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QPixmap, QPainter, QPainterPath
 from config.database import supabase
+from atualizadores import noticias_update
+
 
 # 🔥 Caminhos dos arquivos locais
 NEWS_JSON_PATH = "cache/noticias.json"
@@ -19,23 +21,6 @@ CONFIG_PATH = "config.json"
 # 🔥 Criar pastas caso não existam
 os.makedirs("cache", exist_ok=True)
 os.makedirs(QR_CODE_FOLDER, exist_ok=True)
-
-def carregar_config():
-    """Carrega o ID do cliente a partir do arquivo config.json"""
-    if not os.path.exists(CONFIG_PATH):
-        print(f" Arquivo de configuração não encontrado: {CONFIG_PATH}")
-        return 101  # Retorna um ID padrão caso não encontre
-
-    try:
-        with open(CONFIG_PATH, "r", encoding="utf-8") as file:
-            config_data = json.load(file)
-            return int(config_data.get("tela_id", 101))  # Retorna 101 se não encontrar
-    except Exception as e:
-        print(f" Erro ao carregar config.json: {e}")
-        return 101  # Retorna um ID padrão caso haja erro
-
-# 🔹 Define o CLIENTE_ID dinamicamente
-CLIENTE_ID = carregar_config()
 
 def arredondar_pixmap(pixmap, radius):
         """Retorna um QPixmap com cantos arredondados."""
@@ -56,155 +41,12 @@ def arredondar_pixmap(pixmap, radius):
 
         return rounded
 
-def obter_noticias_supabase():
-    """Busca as notícias mais recentes do Supabase"""
-    if supabase is None:
-        print("⚠️ Supabase não disponível. Pulando atualização de notícias.")
-        return None, None
-
-    try:
-        response = supabase.table("noticias").select("valor, atualizado_em").eq("tipo", "noticias").execute()
-        if response.data:
-            noticia_data = response.data[0]  # Pegamos a primeira entrada
-
-            # 🔹 Verificar se a chave 'valor' existe
-            if "valor" not in noticia_data:
-                return None, None
-
-            # 🔹 O JSONB no Supabase já retorna como dicionário, então verificamos o tipo
-            noticias = noticia_data["valor"]
-            atualizado_em = noticia_data["atualizado_em"]
-
-            # 🔹 Se o JSONB vier como string, precisamos converter para dicionário
-            if isinstance(noticias, str):
-                try:
-                    noticias = json.loads(noticias)
-                except json.JSONDecodeError as e:
-                    return None, None
-
-            return noticias, atualizado_em
-        return None, None
-    except Exception as e:
-        print(f"❌ Erro ao buscar notícias no Supabase: {e}")
-        return None, None
-
-def salvar_noticias_localmente(noticias, atualizado_em):
-    """Salva as notícias no arquivo local"""
-    try:
-        with open(NEWS_JSON_PATH, "w", encoding="utf-8") as file:
-            json.dump({"noticias": noticias, "atualizado_em": atualizado_em}, file, indent=4, ensure_ascii=False)
-        print(f"✅ Notícias salvas em {NEWS_JSON_PATH}")
-    except Exception as e:
-        print(f"❌ Erro ao salvar notícias localmente: {e}")
-
-def carregar_noticias_local():
-    """Carrega as notícias salvas localmente"""
-    if not os.path.exists(NEWS_JSON_PATH):
-        return None, None
-
-    try:
-        with open(NEWS_JSON_PATH, "r", encoding="utf-8") as file:
-            data = json.load(file)
-            return data.get("noticias"), data.get("atualizado_em")
-
-    except Exception as e:
-        print(f"❌ Erro ao carregar notícias locais: {e}")
-        return None, None
-
-
-def limpar_imagens_antigas_local():
-    """Remove todas as imagens da pasta local 'cache/News'."""
-    for filename in os.listdir(LOCAL_NEWS_FOLDER):
-        file_path = os.path.join(LOCAL_NEWS_FOLDER, filename)
-        try:
-            if os.path.isfile(file_path):
-                os.remove(file_path)
-                print(f"🗑️ Imagem local removida: {file_path}")
-        except Exception as e:
-            print(f"⚠️ Erro ao remover {file_path}: {e}")
-
-def verificar_imagem_valida(path):
-    """Verifica se o arquivo é uma imagem válida e não está corrompido"""
-    try:
-        with Image.open(path) as img:
-            img.verify()  # Verifica se é uma imagem válida
-        return True
-    except Exception as e:
-        print(f"❌ Imagem inválida ou corrompida: {path} — {e}")
-        return False
-
-def baixar_imagens_noticias_s3():
-    """Baixa imagens públicas da pasta News/ no bucket imagens-noticias"""
-    imagens_validas = 0
-
-    noticias, _ = carregar_noticias_local()
-    if not noticias:
-        print("⚠️ Nenhuma notícia para processar imagens.")
-        return
-
-    os.makedirs(LOCAL_NEWS_FOLDER, exist_ok=True)
-
-    for origem in noticias:
-        for noticia in noticias[origem]:
-            nome_imagem = noticia.get("imagem")
-            if not nome_imagem:
-                continue
-
-            url = f"https://{S3_BUCKET}.s3.sa-east-1.amazonaws.com/{S3_PREFIX}{nome_imagem}"
-            local_path = os.path.join(LOCAL_NEWS_FOLDER, nome_imagem)
-
-            try:
-                response = requests.get(url, timeout=10)
-                if response.status_code == 200:
-                    with open(local_path, "wb") as f:
-                        f.write(response.content)
-                    print(f"📥 Imagem baixada: {nome_imagem}")
-
-                    if verificar_imagem_valida(local_path):
-                        imagens_validas += 1
-                    else:
-                        os.remove(local_path)
-                        print(f"🗑️ Imagem inválida: {nome_imagem}")
-                else:
-                    print(f"⚠️ Erro {response.status_code} ao baixar {url}")
-            except Exception as e:
-                print(f"❌ Falha ao baixar {nome_imagem}: {e}")
-
-    print(f"✅ {imagens_validas} imagens válidas baixadas com sucesso.")
-
-def verificar_e_atualizar_noticias():
-    """Verifica se precisa atualizar as notícias e atualiza imagens e JSON local."""
-    print("🔄 Verificando atualização das notícias...")
-
-    noticias_local, timestamp_local = carregar_noticias_local()
-    noticias_supabase, timestamp_supabase = obter_noticias_supabase()
-
-    if not noticias_supabase:
-        print("⚠️ Nenhuma notícia disponível no Supabase. Mantendo a versão local.")
-        return noticias_local
-
-    if timestamp_supabase != timestamp_local:
-        print(f"🆕 Atualização detectada! Novo timestamp: {timestamp_supabase}")
-
-        # 🔥 Etapa 1: Limpa imagens antigas
-        limpar_imagens_antigas_local()
-
-        # 🔥 Etapa 2: Baixa novas imagens do bucket 'imagens-noticias/News/'
-        baixar_imagens_noticias_s3()
-
-        # 🔥 Etapa 3: Salva novo JSON local apenas após as imagens
-        salvar_noticias_localmente(noticias_supabase, timestamp_supabase)
-        return noticias_supabase
-
-    print("✅ Notícias já estão atualizadas. Nenhuma ação necessária.")
-    return noticias_local
-
 class NewsWidget(QWidget):
     def __init__(self):
         super().__init__()
 
         # 🔄 Força a verificação no Supabase na inicialização
-        verificar_e_atualizar_noticias()
+        noticias_update.verificar_e_atualizar_noticias()
 
         # 🔥 Criar QR Code folder dentro do objeto
         self.qr_folder = QR_CODE_FOLDER
@@ -324,7 +166,7 @@ class NewsWidget(QWidget):
 
         # 📌 Criar JSON inicial caso não exista
         if not os.path.exists(NEWS_JSON_PATH):
-            salvar_noticias_localmente({"portal_cidade": [], "jovempan": []}, "2000-01-01T00:00:00")
+            noticias_update.salvar_noticias_localmente({"portal_cidade": [], "jovempan": []}, "2000-01-01T00:00:00")
 
         # 📌 Carregar as notícias do JSON
         self.news_list = self.get_news_from_json()
@@ -348,7 +190,7 @@ class NewsWidget(QWidget):
 
     def get_news_from_json(self):
         """Obtém as notícias do JSON salvo localmente e gera QR Codes intercalados em loop entre J e P."""
-        noticias, _ = carregar_noticias_local()
+        noticias, _ = noticias_update.carregar_noticias_local()
         if not noticias:
             return []
 
@@ -460,7 +302,7 @@ class NewsWidget(QWidget):
     def atualizar_noticias(self):
         """Atualiza as notícias verificando o Supabase e atualiza o label."""
         print("🔄 Atualizando notícias no Widget...")
-        novas_noticias = verificar_e_atualizar_noticias()
+        novas_noticias = noticias_update.verificar_e_atualizar_noticias()
         if novas_noticias:
             self.clear_qr_cache()  # 🔥 Limpa os QR Codes antigos
             self.news_list = self.get_news_from_json()
@@ -501,7 +343,7 @@ class NewsWidget(QWidget):
             return None
 
         # ⚠️ Substitua pelo domínio público ou IP do seu servidor
-        backend_url = f"http://15.228.8.3:8000/leitura?cliente_id={CLIENTE_ID}&link={link}"
+        backend_url = f"http://15.228.8.3:8000/leitura?cliente_id={noticias_update.CLIENTE_ID}&link={link}"
         qr_filename = f"{hash(backend_url)}.png"
         qr_path = os.path.join(self.qr_folder, qr_filename)
 
