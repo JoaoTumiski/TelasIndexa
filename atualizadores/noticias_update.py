@@ -10,6 +10,8 @@ CONFIG_PATH = "config.json"
 S3_BUCKET = "imagens-noticias"
 S3_PREFIX = "News/"
 
+CONFIG_PATH = "config.json"
+
 def carregar_config():
     if not os.path.exists(CONFIG_PATH):
         return 101
@@ -21,6 +23,7 @@ def carregar_config():
         return 101
 
 CLIENTE_ID = carregar_config()
+
 
 def obter_noticias_supabase():
     if supabase is None:
@@ -79,14 +82,23 @@ def verificar_imagem_valida(path):
     except Exception as e:
         print(f"❌ Imagem inválida ou corrompida: {path} — {e}")
         return False
-
-def baixar_imagens_noticias_s3(noticias):
+    
+def contar_imagens_faltando():
+    noticias, _ = obter_noticias_supabase()
     if not noticias:
-        print("⚠️ Nenhuma notícia para processar imagens.")
+        return 0
+
+    return sum(
+        1 for origem in noticias for noticia in noticias[origem]
+        if noticia.get("imagem") and not os.path.exists(os.path.join(LOCAL_NEWS_FOLDER, noticia["imagem"]))
+    )
+
+
+def baixar_imagens_noticias_s3(noticias, callback=None):
+    if not noticias:
         return
 
     os.makedirs(LOCAL_NEWS_FOLDER, exist_ok=True)
-    imagens_validas = 0
 
     for origem in noticias:
         for noticia in noticias[origem]:
@@ -94,29 +106,33 @@ def baixar_imagens_noticias_s3(noticias):
             if not nome_imagem:
                 continue
 
-            url = f"https://{S3_BUCKET}.s3.sa-east-1.amazonaws.com/{S3_PREFIX}{nome_imagem}"
             local_path = os.path.join(LOCAL_NEWS_FOLDER, nome_imagem)
 
-            try:
-                response = requests.get(url, timeout=10)
-                if response.status_code == 200:
-                    with open(local_path, "wb") as f:
-                        f.write(response.content)
-                    print(f"📥 Imagem baixada: {nome_imagem}")
+            # Se a imagem já existe e é válida, pula o download
+            if os.path.exists(local_path) and verificar_imagem_valida(local_path):
+                continue
 
-                    if verificar_imagem_valida(local_path):
-                        imagens_validas += 1
+            url = f"https://{S3_BUCKET}.s3.sa-east-1.amazonaws.com/{S3_PREFIX}{nome_imagem}"
+
+            for tentativa in range(3):
+                try:
+                    response = requests.get(url, timeout=10)
+                    if response.status_code == 200:
+                        with open(local_path, "wb") as f:
+                            f.write(response.content)
+
+                        if verificar_imagem_valida(local_path):
+                            if callback:
+                                callback()  # ✅ Atualiza a barra de progresso
+                            break
+                        else:
+                            os.remove(local_path)
                     else:
-                        os.remove(local_path)
-                        print(f"🗑️ Imagem inválida: {nome_imagem}")
-                else:
-                    print(f"⚠️ Erro {response.status_code} ao baixar {url}")
-            except Exception as e:
-                print(f"❌ Falha ao baixar {nome_imagem}: {e}")
+                        continue
+                except:
+                    continue
 
-    print(f"✅ {imagens_validas} imagens válidas baixadas com sucesso.")
-
-def verificar_e_atualizar_noticias():
+def verificar_e_atualizar_noticias(callback=None):
     print("🔄 Verificando atualização das notícias...")
 
     noticias_local, timestamp_local = carregar_noticias_local()
@@ -129,7 +145,7 @@ def verificar_e_atualizar_noticias():
     if timestamp_supabase != timestamp_local:
         print(f"🆕 Atualização detectada! Novo timestamp: {timestamp_supabase}")
         limpar_imagens_antigas_local()
-        baixar_imagens_noticias_s3(noticias_supabase)
+        baixar_imagens_noticias_s3(noticias_supabase, callback=callback)
         salvar_noticias_localmente(noticias_supabase, timestamp_supabase)
         return noticias_supabase
 

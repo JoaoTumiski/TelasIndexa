@@ -2,14 +2,14 @@ import sys
 import os
 import json
 import atexit
-import subprocess
-from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QPushButton, QLineEdit
+from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel, QPushButton, QLineEdit, QProgressBar
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtCore import Qt, QTimer, QCoreApplication
+from update_controller import executar_atualizacoes
+from threading import Thread
 
 CONFIG_FILE = "config.json"
 EXTRACT_PATH = "cache"  # Pasta onde os arquivos extraídos serão armazenados
-atualizador_proc = None
 
 class ConfigIni(QMainWindow):
     def __init__(self):
@@ -19,7 +19,7 @@ class ConfigIni(QMainWindow):
         self.setWindowTitle("Configuração Inicial")
         self.setGeometry(100, 100, 800, 600)
 
-        # Carregar e redimensionar a imagem de fundo
+        # Fundo
         self.background_label = QLabel(self)
         pixmap = QPixmap("assets/background.png")
         pixmap = pixmap.scaled(self.width(), self.height(), Qt.AspectRatioMode.KeepAspectRatioByExpanding)
@@ -27,125 +27,88 @@ class ConfigIni(QMainWindow):
         self.background_label.setScaledContents(True)
         self.background_label.setGeometry(0, 0, self.width(), self.height())
 
-        # Campo de texto para o ID da Tela
+        # Campo de texto
         self.text_input = QLineEdit(self)
         self.text_input.setPlaceholderText("Digite o ID da Tela")
         self.text_input.setGeometry(300, 250, 200, 40)
 
-        # Botão de salvar
+        # Botão
         self.button = QPushButton("Salvar", self)
         self.button.setGeometry(350, 300, 100, 40)
         self.button.clicked.connect(self.salvar_config)
 
-        # Mensagem de status
+        # Mensagem
         self.status_label = QLabel("", self)
         self.status_label.setGeometry(250, 350, 300, 40)
         self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.status_label.setStyleSheet("font-size: 18px; text-align: center; color: white;")
+        self.status_label.setStyleSheet("font-size: 18px; color: white;")
 
-        # Ajustar a ordem dos elementos
+        # Progress bar
+        self.progress_bar = QProgressBar(self)
+        self.progress_bar.setGeometry(250, 400, 300, 25)
+        self.progress_bar.setValue(0)
+        self.progress_bar.setVisible(False)
+        self.progress_bar.setStyleSheet("""
+            QProgressBar {
+                border: 2px solid grey;
+                border-radius: 5px;
+                text-align: center;
+                color: black;
+            }
+            QProgressBar::chunk {
+                background-color: #00cc66;
+                width: 10px;
+            }
+        """)
+
+        # Ordem visual
         self.text_input.raise_()
         self.button.raise_()
         self.status_label.raise_()
 
-        # Redimensionamento dinâmico
         self.resizeEvent = self.on_resize
 
-        # Timer para verificar a existência do arquivo JSON a cada 3 segundos
-        self.check_timer = QTimer(self)
-        self.check_timer.timeout.connect(self.verificar_json_criado)
-
-
-    def encerrar_atualizador(self):
-        global atualizador_proc
-        if atualizador_proc and atualizador_proc.poll() is None:
-            print("🛑 Encerrando atualizador...")
-            try:
-                atualizador_proc.terminate()
-                atualizador_proc.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                atualizador_proc.kill()
-
     def salvar_config(self):
-        """Salva o ID da Tela, exibe mensagem e inicia atualização"""
-        entrada = self.text_input.text().strip()  # Ex: "101_1" ou "101"
-        
+        entrada = self.text_input.text().strip()
         if entrada:
             partes = entrada.split("_")
             cliente_id = partes[0]
             modelo_tela = int(partes[1]) if len(partes) > 1 and partes[1].isdigit() else 0
-            
+
             config = {
                 "tela_id": cliente_id,
                 "modelo": modelo_tela
             }
 
-            # Salvar ID e modelo no config.json
             with open(CONFIG_FILE, "w") as f:
                 json.dump(config, f)
 
             self.status_label.setText("📡 Fazendo download dos arquivos...")
+            self.progress_bar.setVisible(True)
+            self.progress_bar.setValue(0)
             self.button.setEnabled(False)
             self.text_input.setEnabled(False)
 
-            # 🔥 Criar caminhos apenas agora
-            atualizador_path = os.path.join(os.path.dirname(__file__), "atualizador.py")
-            verificador_path = os.path.join(os.path.dirname(__file__), "verificador_sistema.py")
+            # Iniciar atualizações em thread separada
+            def atualizar():
+                executar_atualizacoes(callback_progresso=self.progress_bar.setValue)
+                # Finalizar na thread principal do Qt
+                QTimer.singleShot(0, self.finalizar_config)
 
-            # Iniciar subprocessos
-            global atualizador_proc
-            atualizador_proc = subprocess.Popen(
-                [sys.executable, atualizador_path],
-                creationflags=subprocess.CREATE_NO_WINDOW
-            )
-            verificador_proc = subprocess.Popen(
-                [sys.executable, verificador_path],
-                creationflags=subprocess.CREATE_NO_WINDOW
-            )
-            subprocess.Popen(["python", "unzip.py"])
-
-            # 🔥 Encerramento seguro
-            def encerrar_processos():
-                for proc in [atualizador_proc, verificador_proc]:
-                    if proc and proc.poll() is None:
-                        print("🛑 Encerrando subprocesso...")
-                        proc.terminate()
-                        try:
-                            proc.wait(timeout=5)
-                        except subprocess.TimeoutExpired:
-                            proc.kill()
-
-            QCoreApplication.instance().aboutToQuit.connect(encerrar_processos)
-            atexit.register(encerrar_processos)
-
-            # Verificação do update.json
-            self.check_timer.start(3000)
-
-    def verificar_json_criado(self):
-        """Verifica se o arquivo <id_da_tela>.json foi criado"""
-        json_path = os.path.join(EXTRACT_PATH, "update.json")
-        if os.path.exists(json_path):
-            self.finalizar_config()  # Se o arquivo existe, inicia o app
+            Thread(target=atualizar, daemon=True).start()
 
     def finalizar_config(self):
-        """Fecha a janela e inicia a aplicação"""
+        self.progress_bar.setValue(100)
         self.status_label.setText("✅ Arquivos baixados e extraídos!")
-
-        # Iniciar a tela principal (sistema.py)
-        subprocess.Popen(["python", "sistema.py"])
-
-        # Parar o timer e fechar a janela
-        self.check_timer.stop()
         self.close()
 
     def on_resize(self, event):
-        """Redimensiona o background ao ajustar a tela."""
         pixmap = QPixmap("assets/background.png")
         pixmap = pixmap.scaled(self.width(), self.height(), Qt.AspectRatioMode.KeepAspectRatioByExpanding)
         self.background_label.setPixmap(pixmap)
         self.background_label.setGeometry(0, 0, self.width(), self.height())
 
-# 🔹 Teste isolado
+# 🔹 Execução isolada
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = ConfigIni()

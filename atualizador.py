@@ -3,8 +3,7 @@ import atexit
 import time
 import sys
 import psutil
-
-from atualizadores import sistema, entretenimento
+from atualizadores import sistema, entretenimento, noticias_update
 
 BASE_DIR = getattr(sys, '_MEIPASS', os.path.abspath("."))
 CACHE_DIR = os.path.join(BASE_DIR, "cache")
@@ -47,6 +46,9 @@ if __name__ == "__main__":
 
             print("🎞️ Verificando atualizações de entretenimento...")
             entretenimento.verificar_atualizacao_entretenimento()
+
+            print("📰 Verificando atualizações das notícias...")
+            noticias_update.verificar_e_atualizar_noticias()
 
             print("✅ Fim do ciclo. Aguardando próximo...")
             time.sleep(tempo_espera)

@@ -57,8 +57,6 @@ def carregar_cotacao_local():
         print(f"❌ Erro ao carregar cotação local: {e}")
         return None, None
 
-
-
 def verificar_e_atualizar_cotacao():
 
     # 🔥 Busca timestamp do JSON salvo localmente

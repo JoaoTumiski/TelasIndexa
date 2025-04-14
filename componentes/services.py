@@ -61,29 +61,49 @@ class ServicesWidget(QWidget):
             self.Services.setText("⚠️ Nenhum banner encontrado!")
 
     def check_for_json_update(self):
-        """Verifica se houve mudança no JSON e recarrega os banners se necessário."""
+        """Verifica se houve mudança no JSON ou na pasta e recarrega os banners com atraso."""
         if not os.path.exists(self.json_path):
             return
 
         try:
             with open(self.json_path, "r", encoding="utf-8") as file:
-                new_json_state = file.read()  # Lê o JSON como string para comparação
+                new_json_state = file.read()
 
-            if new_json_state != self.last_json_state:  # Se mudou, recarrega os banners
-                print("🔄 Detecção de mudança no JSON! Atualizando banners...")
+            new_folder_snapshot = self.get_folder_snapshot()
+            json_alterado = new_json_state != self.last_json_state
+            pasta_alterada = new_folder_snapshot != getattr(self, "last_folder_snapshot", set())
 
-                self.last_json_state = new_json_state  # Atualiza o estado conhecido
-                self.image_list = self.get_images_from_json()  # Recarrega a lista de imagens
-                self.current_image_index = 0  # Reinicia a exibição
-                self.update_image()  # Atualiza o banner exibido
+            if not json_alterado and not pasta_alterada:
+                return
+
+            print("🔄 Mudança detectada em banners. Aplicando em 10 segundos...")
+
+            def aplicar():
+                self.last_json_state = new_json_state
+                self.last_folder_snapshot = new_folder_snapshot
+                self.image_list = self.get_images_from_json()
+                self.current_image_index = 0
+                self.update_image()
+
+            QTimer.singleShot(10000, aplicar)
 
         except Exception as e:
-            print(f"❌ Erro ao verificar mudanças no JSON: {e}")
+            print(f"❌ Erro ao verificar mudanças: {e}")
+
+    def get_folder_snapshot(self):
+        """Snapshot da pasta Banners."""
+        if not os.path.exists(self.image_folder):
+            return set()
+        return {
+            (f, os.path.getmtime(os.path.join(self.image_folder, f)))
+            for f in os.listdir(self.image_folder)
+            if os.path.isfile(os.path.join(self.image_folder, f))
+        }
 
     def get_images_from_json(self):
-        """Obtém os banners válidos listados no JSON extraído, ignorando deletados."""
+        """Obtém os banners válidos listados no JSON (status diferente de deleted)."""
         if not os.path.exists(self.json_path):
-            print(f"⚠️ Arquivo JSON não encontrado: {self.json_path}")
+            print(f"⚠️ JSON não encontrado: {self.json_path}")
             return []
 
         try:
@@ -91,21 +111,20 @@ class ServicesWidget(QWidget):
                 data = json.load(file)
                 banners = data.get("Banners", [])
 
-                image_paths = []
-                for banner in banners:
-                    # 🔹 Ignora banners com status "deleted"
-                    if banner.get("status") == "deleted":
-                        continue  
+                arquivos_validos = set(
+                    os.path.normpath(os.path.join(self.image_folder, os.path.basename(b["imagem"])))
+                    for b in banners
+                    if b.get("status") != "deleted" and "imagem" in b
+                )
 
-                    image_name = os.path.basename(banner["imagem"])  # Pega apenas o nome do arquivo
-                    image_path = os.path.join(self.image_folder, image_name)
-
-                    if os.path.exists(image_path):  # Confirma que o arquivo existe
-                        image_paths.append(image_path)
+                imagens_existentes = []
+                for path in arquivos_validos:
+                    if os.path.exists(path):
+                        imagens_existentes.append(path)
                     else:
-                        print(f"⚠️ Arquivo de banner não encontrado: {image_path}")
+                        print(f"⚠️ Imagem ausente: {path}")
 
-                return image_paths
+                return imagens_existentes
 
         except Exception as e:
             print(f"❌ Erro ao processar JSON: {e}")

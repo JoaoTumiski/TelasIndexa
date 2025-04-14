@@ -87,7 +87,7 @@ class InfoWidget(QWidget):
             self.check_for_json_update()
 
     def check_for_json_update(self):
-        """Verifica se houve mudança no JSON e recarrega os avisos se necessário."""
+        """Verifica mudanças no JSON e na pasta de avisos. Aplica alterações com atraso apenas se a pasta mudar."""
         if not os.path.exists(self.json_path):
             return
 
@@ -95,38 +95,49 @@ class InfoWidget(QWidget):
             with open(self.json_path, "r", encoding="utf-8") as file:
                 new_json_raw = file.read()
 
-            if new_json_raw == self.last_json_data:
-                return  # nada mudou
-            print("🔄 JSON alterado! Recarregando avisos...")
+            new_folder_snapshot = self.get_folder_snapshot()
 
-            # Salva novo JSON
-            self.last_json_data = new_json_raw
-            new_json_data = json.loads(new_json_raw)
+            json_alterado = new_json_raw != self.last_json_data
+            pasta_alterada = new_folder_snapshot != getattr(self, "last_folder_snapshot", set())
 
-            # Atualiza a lista de avisos
-            new_notices = self.get_valid_notices()
+            def aplicar_alteracoes():
+                self.last_json_data = new_json_raw
+                self.last_folder_snapshot = new_folder_snapshot
+                new_notices = self.get_valid_notices()
 
-            # Se a lista mudou, aplica as alterações
-            if new_notices != self.notices:
-                self.notices = new_notices
-                self.current_notice_index = 0
-                self.current_pdf_page = 0
+                if new_notices != self.notices:
+                    self.notices = new_notices
+                    self.current_notice_index = 0
+                    self.current_pdf_page = 0
 
-                if self.notices:
-                    self.update_notice()
-                    self.notice_timer.start()
-                    self.page_timer.start()
-                else:
-                    self.show_default_image()
-                    self.notice_timer.stop()
-                    self.page_timer.stop()
+                    if self.notices:
+                        self.update_notice()
+                        self.notice_timer.start()
+                        self.page_timer.start()
+                    else:
+                        self.show_default_image()
+                        self.notice_timer.stop()
+                        self.page_timer.stop()
 
-            # ✅ Agora podemos deletar os arquivos marcados como 'deleted' com atraso
-            QTimer.singleShot(10000, lambda: self.delete_removed_notices(new_json_data))
-
+            if pasta_alterada:
+                print("📂 Mudança na pasta detectada! Aplicando após 10 segundos...")
+                QTimer.singleShot(10000, aplicar_alteracoes)
+            elif json_alterado:
+                print("📝 JSON alterado. Aplicando imediatamente.")
+                aplicar_alteracoes()
 
         except Exception as e:
-            print(f"❌ Erro ao verificar mudanças no JSON: {e}")
+            print(f"❌ Erro ao verificar mudanças no JSON ou pasta: {e}")
+            
+    def get_folder_snapshot(self):
+        """Retorna um snapshot dos arquivos da pasta de avisos (nome + data de modificação)."""
+        if not os.path.exists(self.notices_folder):
+            return set()
+        return {
+            (f, os.path.getmtime(os.path.join(self.notices_folder, f)))
+            for f in os.listdir(self.notices_folder)
+            if os.path.isfile(os.path.join(self.notices_folder, f))
+        }
 
     def get_valid_notices(self):
         """Obtém avisos vigentes do JSON."""
@@ -193,38 +204,6 @@ class InfoWidget(QWidget):
 
         else:
             self.show_default_image()
-            
-
-    def delete_removed_notices(self, json_data):
-        """Deleta arquivos marcados como 'deleted' no JSON após atualização da interface."""
-
-        # 🧹 Remove imagem temporária primeiro
-        if os.path.exists("temp_pdf.png"):
-            try:
-                os.remove("temp_pdf.png")
-                print("🧹 Imagem temporária removida.")
-            except Exception as e:
-                print(f"⚠️ Erro ao remover temp_pdf.png: {e}")
-
-        notices = json_data.get("CondominiumNotices", [])
-
-        for notice in notices:
-            if notice.get("status") == "deleted":
-                file_name = os.path.basename(notice.get("mensagem", ""))
-                file_path = os.path.join(self.notices_folder, file_name)
-
-                if os.path.exists(file_path):
-                    # ⛔️ Evita deletar o arquivo que está sendo exibido no momento
-                    current_file = self.notices[self.current_notice_index] if self.notices else ""
-                    if os.path.abspath(file_path) == os.path.abspath(current_file):
-                        print(f"⏩ Ignorando exclusão do aviso atual em exibição: {file_path}")
-                        continue
-
-                    try:
-                        os.remove(file_path)
-                        print(f"🗑️ Arquivo deletado: {file_path}")
-                    except Exception as e:
-                        print(f"❌ Erro ao deletar {file_path}: {e}")
 
     def next_notice(self):
         """Alterna para o próximo aviso no loop"""
