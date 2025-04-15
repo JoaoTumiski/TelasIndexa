@@ -40,6 +40,18 @@ def baixar_arquivo(url, destino, tentativas=3):
             time.sleep(3)
     return False
 
+def confirmar_atualizacao(cliente_id):
+    try:
+        url = f"http://15.228.8.3:8000/confirm-update/{cliente_id}"  # ou IP externo do seu backend
+        response = requests.post(url, timeout=10)
+        if response.status_code == 200:
+            print("✅ Atualização confirmada com o servidor.")
+        else:
+            print(f"⚠️ Falha ao confirmar atualização: {response.text}")
+    except Exception as e:
+        print(f"❌ Erro ao confirmar atualização: {e}")
+
+
 def verificar_integridade_arquivos(json_data):
     arquivos_faltando = []
     for categoria in ["Propagandas", "Banners", "CondominiumNotices"]:
@@ -113,6 +125,7 @@ def verificar_atualizacao(callback=None):
             if arquivos_faltando:
                 baixar_arquivos_faltando(arquivos_faltando, json_data.get("pasta_s3"), callback=callback)
             deletar_arquivos_removidos(json_data)
+            confirmar_atualizacao(CLIENTE_ID)
     except:
         pass
 

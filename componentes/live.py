@@ -155,6 +155,10 @@ class LiveWidget(QWidget):
 
         self.view.setSizePolicy(self.sizePolicy())  # garante que ocupe o espaço do widget
         self.layout.addWidget(self.view)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.view.setMinimumHeight(1)
+        self.setMinimumHeight(1)
+
 
         # Configura player
         self.player = QMediaPlayer(self)

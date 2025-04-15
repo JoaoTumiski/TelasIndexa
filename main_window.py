@@ -8,7 +8,7 @@ from componentes.news import NewsWidget
 from componentes.footer import Footer
 from componentes.info_condo import InfoWidget
 from componentes.live import LiveWidget
-from componentes.time import TimerWidget
+from componentes.time import FlipClockClimaWidget  
 from componentes.services import ServicesWidget
 
 
@@ -83,8 +83,15 @@ class ElevatorScreen(QMainWindow):
         live_widget = LiveWidget()
         right_layout.addWidget(live_widget, 3)
 
-        timer_widget = TimerWidget()
-        right_layout.addWidget(timer_widget, 1)
+        timer_widget = FlipClockClimaWidget()
+        # Centralizar horizontalmente o widget de clima
+        timer_container = QWidget()
+        timer_layout = QHBoxLayout(timer_container)
+        timer_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        timer_layout.addWidget(timer_widget)
+
+        right_layout.addWidget(timer_container, 1)
+
 
         # 📌 Adicionar o layout das colunas no layout principal
         mainV_layout.addLayout(mainH_layout, 6)
