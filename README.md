@@ -12,6 +12,7 @@ Aplicação que roda localmente em mini PCs (NUCs), responsável por exibir o co
   - 📹 Live e câmeras ao vivo (com reconexão)
   - 🎬 Vídeos institucionais e propagandas
   - 💰 Cotações do dia
+  - ☁ Clima do dia 
     
 - Funcionamento offline com cache em **SQLite**
 - Atualização automática de conteúdo a cada 20 minutos
