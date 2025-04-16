@@ -113,7 +113,7 @@ class FlipClockClimaWidget(QWidget):
     def criar_layout_clima(self):
         widget = QWidget()
         layout_principal = QHBoxLayout(widget)
-        layout_principal.setContentsMargins(0, 0, 0, 0)
+        layout_principal.setContentsMargins(0, 0, 40, 0)
         layout_principal.setSpacing(10)
 
         if not os.path.exists("cache/clima_cache.json"):
@@ -131,7 +131,7 @@ class FlipClockClimaWidget(QWidget):
 
         except Exception as e:
             aviso = QLabel("Erro ao carregar clima")
-            aviso.setStyleSheet("font-size: 16px; color: red;")
+            aviso.setStyleSheet("font-size: 18px; color: red;")
             layout_principal.addWidget(aviso)
             print(f"[ERRO] Falha ao processar JSON de clima: {e}")
 
@@ -153,7 +153,7 @@ class FlipClockClimaWidget(QWidget):
         temp_label.setStyleSheet("font-size: 28px; font-weight: bold; color: white;")
 
         desc_label = QLabel(f"{texto}\n{chance}% Chuva", alignment=Qt.AlignmentFlag.AlignCenter)
-        desc_label.setStyleSheet("font-size: 14px; font-weight: bold; color: white;")
+        desc_label.setStyleSheet("font-size: 16px; font-weight: bold; color: white;")
 
         layout.addWidget(temp_label)
         layout.addWidget(desc_label)
@@ -174,7 +174,7 @@ class FlipClockClimaWidget(QWidget):
             texto = CONDICOES_PT.get(dia["day"]["condition"]["code"], dia["day"]["condition"]["text"])
 
             info = QLabel(f"{min_temp:.1f}°C - {max_temp:.1f}°C\n{texto}", alignment=Qt.AlignmentFlag.AlignCenter)
-            info.setStyleSheet("font-size: 12px; font-weight: bold; color: white;")
+            info.setStyleSheet("font-size: 14px; font-weight: bold; color: white;")
             sub_layout.addWidget(info)
             layout.addLayout(sub_layout)
 

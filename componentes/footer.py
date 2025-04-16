@@ -138,7 +138,7 @@ class Footer(QWidget):
             variacao = item.get("variacao", "0")
 
             # 🔹 Definir setas 🔻🔺 com base na variação
-            cor = "🔻" if "-" in variacao else "🔺"
+            cor = "🔻" if float(variacao) < 0 else "🔺"
 
             # 🔹 Formatar a string corretamente
             cotacoes_gerais.append(f"{nome}: Compra R$ {compra} | Venda R$ {venda} {cor} {variacao}%")
