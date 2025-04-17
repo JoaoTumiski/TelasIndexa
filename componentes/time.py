@@ -147,12 +147,14 @@ class FlipClockClimaWidget(QWidget):
         temp = clima["temp_c"]
         code = clima["condition"]["code"]
         texto = CONDICOES_PT.get(code, clima["condition"]["text"])
-        chance = previsao["day"]["daily_chance_of_rain"]
+        horas = previsao.get("hour", [])
+        chance_real = sum(1 for h in horas if h["chance_of_rain"] >= 50) / len(horas) * 100 if horas else 0
+        precip_mm_total = sum(h.get("precip_mm", 0) for h in horas)
 
         temp_label = QLabel(f"{temp:.1f}°C", alignment=Qt.AlignmentFlag.AlignCenter)
         temp_label.setStyleSheet("font-size: 28px; font-weight: bold; color: white;")
 
-        desc_label = QLabel(f"{texto}\n{chance}% Chuva", alignment=Qt.AlignmentFlag.AlignCenter)
+        desc_label = QLabel(f"{texto}\n{chance_real:.0f}% chance de chuva • {precip_mm_total:.1f}mm", alignment=Qt.AlignmentFlag.AlignCenter)
         desc_label.setStyleSheet("font-size: 16px; font-weight: bold; color: white;")
 
         layout.addWidget(temp_label)

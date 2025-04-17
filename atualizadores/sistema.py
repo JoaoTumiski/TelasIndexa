@@ -124,8 +124,8 @@ def verificar_atualizacao(callback=None):
             arquivos_faltando = verificar_integridade_arquivos(json_data)
             if arquivos_faltando:
                 baixar_arquivos_faltando(arquivos_faltando, json_data.get("pasta_s3"), callback=callback)
-            deletar_arquivos_removidos(json_data)
-            confirmar_atualizacao(CLIENTE_ID)
+                deletar_arquivos_removidos(json_data)
+                confirmar_atualizacao(CLIENTE_ID)
     except:
         pass
 
